@@ -25,7 +25,7 @@ npm run dev
 
 ## 图片来源
 
-图片地址兼容原项目 `samdemaeyer/codenames-pictures` 的 `public/images/cards/card-N.jpg` 命名方式。程序优先加载本地 `public/images/cards/`，本地文件不存在时回退到原项目的 GitHub Pages 地址。
+项目已在 `public/images/cards/` 保存原题库的 280 张 `card-N.jpg` 图片。程序优先加载这些本地文件；某张本地文件不存在时，才回退到原项目的 GitHub Pages 地址。
 
 原项目：<https://github.com/samdemaeyer/codenames-pictures>
 
