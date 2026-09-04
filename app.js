@@ -348,7 +348,7 @@ function setupPlay() {
   }
 
   function renderTeams() {
-    const placements = calculatePlacements(completionRounds, Object.keys(eliminatedTeams));
+    const placements = calculatePlacements(completionRounds);
     teamSwitcher.replaceChildren(...TEAM_ORDER.map((team) => {
       const button = document.createElement("button");
       const remaining = remainingFor(team);
@@ -560,7 +560,7 @@ function setupPlay() {
   }
 
   function completionMessage(team) {
-    const placement = calculatePlacements(completionRounds, Object.keys(eliminatedTeams))[team];
+    const placement = calculatePlacements(completionRounds)[team];
     return TEAMS[team].name + "已在第 " + completionRounds[team] + " 轮找齐 5 张，当前排名 " + ordinal(placement) + "。";
   }
 
@@ -706,8 +706,8 @@ function setupPlay() {
 
   function sidebarWidthBounds() {
     return {
-      min: 288,
-      max: Math.max(288, Math.min(520, window.innerWidth - 520))
+      min: 320,
+      max: Math.max(320, Math.min(820, window.innerWidth - 500))
     };
   }
 

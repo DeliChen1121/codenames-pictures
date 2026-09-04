@@ -131,22 +131,14 @@ export function roleCounts(cards) {
   }, {});
 }
 
-export function calculatePlacements(completionRounds, eliminatedTeams = []) {
+export function calculatePlacements(completionRounds) {
   const finished = TEAM_ORDER
     .filter((team) => Number.isInteger(completionRounds[team]))
     .map((team) => ({ team, round: completionRounds[team] }));
-  const uniqueRounds = [...new Set(finished.map((entry) => entry.round))].sort((a, b) => a - b);
   const placements = {};
 
   for (const entry of finished) {
-    placements[entry.team] = uniqueRounds.indexOf(entry.round) + 1;
-  }
-
-  if (finished.length === TEAM_ORDER.length && eliminatedTeams.length === 0 && uniqueRounds.length > 1) {
-    const finalRound = uniqueRounds[uniqueRounds.length - 1];
-    const finalGroup = finished.filter((entry) => entry.round === finalRound);
-    const finalRank = TEAM_ORDER.length - finalGroup.length + 1;
-    for (const entry of finalGroup) placements[entry.team] = finalRank;
+    placements[entry.team] = finished.filter((other) => other.round < entry.round).length + 1;
   }
 
   return placements;

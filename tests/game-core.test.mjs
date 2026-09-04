@@ -68,10 +68,14 @@ test("cards use the visible numbers 1 through 25", () => {
   );
 });
 
-test("rankings follow completion rounds and preserve fourth place", () => {
+test("rankings use competition ranking and skip places after ties", () => {
   assert.deepEqual(
     calculatePlacements({ red: 3, yellow: 3, blue: 4, green: 5 }),
-    { red: 1, yellow: 1, blue: 2, green: 4 }
+    { red: 1, yellow: 1, blue: 3, green: 4 }
+  );
+  assert.deepEqual(
+    calculatePlacements({ red: 3, yellow: 3, blue: 4, green: 4 }),
+    { red: 1, yellow: 1, blue: 3, green: 3 }
   );
 });
 
