@@ -1,5 +1,7 @@
 # Codenames: Pictures · 现场版
 
+原版游戏官网：[Codenames: Pictures](https://www.czechgames.com/games/codenames-pictures)。参考 GitHub 项目：[samdemaeyer/codenames-pictures](https://github.com/samdemaeyer/codenames-pictures)。
+
 一个面向线下活动主持人的 2 至 4 队 Codenames Pictures 游戏。开始页可选择队伍数量与快速、经典、慢速模式；玩家题板与队长答案链接通过同一组参数得到完全一致的图片、颜色、先手和规则。
 
 ## MVP 功能
