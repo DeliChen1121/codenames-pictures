@@ -25,6 +25,12 @@ function registerWebTool(tool) {
   }
 }
 
+function assertEmptyInput(input) {
+  if (input && Object.keys(input).length > 0) {
+    throw new Error("此操作不接受额外参数。");
+  }
+}
+
 function getSeedFromUrl() {
   const params = new URLSearchParams(window.location.search);
   return normalizeSeed(params.get("game"));
@@ -131,7 +137,8 @@ function setupMaster() {
     description: "生成新的局号、答案卡和对应玩家题板链接，并更新当前页面。",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
     annotations: { readOnlyHint: false, untrustedContentHint: false },
-    execute() {
+    execute(input) {
+      assertEmptyInput(input);
       load(createGameCode());
       return { gameCode: seed, playerBoardUrl: playUrl(seed).href };
     }
@@ -460,7 +467,8 @@ function setupPlay() {
     description: "结束当前回合，按红、黄、蓝、绿的顺序切换到下一队并启动队长思考计时。",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
     annotations: { readOnlyHint: false, untrustedContentHint: false },
-    execute() {
+    execute(input) {
+      assertEmptyInput(input);
       advanceTeam("主持人结束了当前回合。");
       return { currentTeam, timerPhase, timerRemaining };
     }
