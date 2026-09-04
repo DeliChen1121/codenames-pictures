@@ -12,11 +12,40 @@ import {
 
 const view = document.body.dataset.view;
 const DEFAULT_TIMER_SECONDS = Object.freeze({ prep: 120, clue: 30, guess: 60 });
+const FONT_SIZE_KEY = "codenames-four-teams:font-size-v1";
+const FONT_SIZE_PRESETS = Object.freeze({ large: 18, huge: 21, giant: 24 });
+const FONT_SIZE_NAMES = Object.freeze({ large: "大", huge: "超大", giant: "特大" });
+let fontSizePreset = loadFontSizePreset();
 const timerPresets = {
   prep: { label: "全体队长思考" },
   clue: { label: "当前队长思考" },
   guess: { label: "当前队伍答题" }
 };
+
+function loadFontSizePreset() {
+  try {
+    const saved = localStorage.getItem(FONT_SIZE_KEY);
+    return Object.prototype.hasOwnProperty.call(FONT_SIZE_PRESETS, saved) ? saved : "huge";
+  } catch {
+    return "huge";
+  }
+}
+
+function applyFontSizePreset(preset, persist = true) {
+  fontSizePreset = Object.prototype.hasOwnProperty.call(FONT_SIZE_PRESETS, preset) ? preset : "huge";
+  document.documentElement.style.fontSize = FONT_SIZE_PRESETS[fontSizePreset] + "px";
+  document.body.dataset.fontSize = fontSizePreset;
+  if (persist) {
+    try {
+      localStorage.setItem(FONT_SIZE_KEY, fontSizePreset);
+    } catch {
+      // The size still applies for the current session.
+    }
+  }
+  return fontSizePreset;
+}
+
+applyFontSizePreset(fontSizePreset, false);
 
 function registerWebTool(tool) {
   const context = document.modelContext;
@@ -210,9 +239,16 @@ function setupPlay() {
   const prepMinutesInput = document.querySelector("#settings-prep-minutes");
   const clueSecondsInput = document.querySelector("#settings-clue-seconds");
   const guessSecondsInput = document.querySelector("#settings-guess-seconds");
+  const fontSizeInput = document.querySelector("#settings-font-size");
   const eliminationNotice = document.querySelector("#elimination-notice");
   const eliminationCopy = document.querySelector("#elimination-copy");
   const dismissElimination = document.querySelector("#dismiss-elimination");
+  const viewResultsButton = document.querySelector("#view-results");
+  const finalResults = document.querySelector("#final-results");
+  const rankingList = document.querySelector("#ranking-list");
+  const dismissResults = document.querySelector("#dismiss-results");
+  const celebrationCanvas = document.querySelector("#celebration-canvas");
+  let celebrationFrame = null;
 
   function stateKey() {
     return "codenames-four-teams:" + seed + ":layout:" + layoutRevision;
@@ -405,8 +441,11 @@ function setupPlay() {
     }
 
     startAnsweringButton.disabled = finished || !currentTeam || !isActive(currentTeam) || timerPhase !== "clue";
+    startAnsweringButton.hidden = finished;
     startAnsweringButton.querySelector("span").textContent = "+ " + formatTime(timerSettings.guess);
     nextTeamButton.disabled = finished || !currentTeam || !isActive(currentTeam);
+    nextTeamButton.hidden = finished;
+    viewResultsButton.hidden = !finished;
     gameCodeLabel.textContent = seed;
     renderTeams();
     updateBoardAvailability();
@@ -521,6 +560,120 @@ function setupPlay() {
     return nextActiveTurn(fromTeam, activeTeams(), round);
   }
 
+  function renderFinalRanking() {
+    const placements = calculatePlacements(completionRounds);
+    const orderedTeams = [...TEAM_ORDER].sort((first, second) => {
+      const firstPlace = placements[first] ?? 99;
+      const secondPlace = placements[second] ?? 99;
+      return firstPlace - secondPlace || TEAM_ORDER.indexOf(first) - TEAM_ORDER.indexOf(second);
+    });
+
+    rankingList.replaceChildren(...orderedTeams.map((team) => {
+      const row = document.createElement("div");
+      const placement = placements[team];
+      const eliminatedRound = eliminatedTeams[team];
+      row.className = "ranking-row team-" + team + (eliminatedRound ? " is-eliminated" : "");
+
+      const badge = document.createElement("strong");
+      badge.className = "ranking-place";
+      badge.textContent = placement ? ordinal(placement) : "出局";
+
+      const copy = document.createElement("span");
+      const name = document.createElement("b");
+      name.textContent = TEAMS[team].name;
+      const detail = document.createElement("small");
+      detail.textContent = placement
+        ? "第 " + completionRounds[team] + " 轮完成"
+        : "第 " + eliminatedRound + " 轮触发黑色";
+      copy.append(name, detail);
+      row.append(badge, copy);
+      return row;
+    }));
+  }
+
+  function stopCelebration() {
+    if (celebrationFrame) window.cancelAnimationFrame(celebrationFrame);
+    celebrationFrame = null;
+    const context = celebrationCanvas.getContext("2d");
+    context?.clearRect(0, 0, celebrationCanvas.width, celebrationCanvas.height);
+  }
+
+  function startCelebration() {
+    stopCelebration();
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    const pixelRatio = Math.min(2, window.devicePixelRatio || 1);
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    celebrationCanvas.width = Math.round(width * pixelRatio);
+    celebrationCanvas.height = Math.round(height * pixelRatio);
+    celebrationCanvas.style.width = width + "px";
+    celebrationCanvas.style.height = height + "px";
+    const context = celebrationCanvas.getContext("2d");
+    context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+
+    const colors = ["#ef4444", "#f7c948", "#3b82f6", "#22c55e", "#ffffff"];
+    const particles = Array.from({ length: 150 }, (_, index) => ({
+      x: Math.random() * width,
+      y: -20 - Math.random() * height * 0.55,
+      width: 6 + Math.random() * 9,
+      height: 4 + Math.random() * 6,
+      speed: 2.6 + Math.random() * 4.8,
+      drift: -1.2 + Math.random() * 2.4,
+      rotation: Math.random() * Math.PI,
+      spin: -0.12 + Math.random() * 0.24,
+      color: colors[index % colors.length]
+    }));
+    const startedAt = performance.now();
+
+    function draw(now) {
+      context.clearRect(0, 0, width, height);
+      for (const particle of particles) {
+        particle.y += particle.speed;
+        particle.x += particle.drift;
+        particle.rotation += particle.spin;
+        if (particle.y > height + 20) particle.y = -30;
+        context.save();
+        context.translate(particle.x, particle.y);
+        context.rotate(particle.rotation);
+        context.fillStyle = particle.color;
+        context.fillRect(-particle.width / 2, -particle.height / 2, particle.width, particle.height);
+        context.restore();
+      }
+      if (now - startedAt < 5200) celebrationFrame = window.requestAnimationFrame(draw);
+      else stopCelebration();
+    }
+
+    celebrationFrame = window.requestAnimationFrame(draw);
+  }
+
+  function showFinalResults() {
+    renderFinalRanking();
+    finalResults.hidden = false;
+    window.requestAnimationFrame(startCelebration);
+    dismissResults.focus();
+  }
+
+  function hideFinalResults() {
+    finalResults.hidden = true;
+    stopCelebration();
+    viewResultsButton.focus();
+  }
+
+  function finishGame(reason) {
+    currentTeam = null;
+    stopTimer(false);
+    timerPhase = "guess";
+    timerRemaining = 0;
+    revealed = new Set(game.cards.map((card) => card.index));
+    message.textContent = reason + " 所有队伍均已完成或出局，本局结束。";
+    saveState();
+    renderTimer();
+    renderBoard();
+    renderStatus();
+    showFinalResults();
+  }
+
   function advanceTeam(reason, autoStart = true) {
     if (!currentTeam) {
       startFirstTurn();
@@ -528,13 +681,7 @@ function setupPlay() {
     }
     const next = findNextActive(currentTeam);
     if (!next) {
-      currentTeam = null;
-      stopTimer(false);
-      timerRemaining = 0;
-      renderTimer();
-      message.textContent = reason + " 所有队伍均已完成或出局，本局结束。";
-      saveState();
-      renderStatus();
+      finishGame(reason);
       return;
     }
     round = next.round;
@@ -576,13 +723,12 @@ function setupPlay() {
       eliminatedTeams[guessingTeam] = Math.max(1, round);
       stopTimer(false);
       advanceTeam(TEAMS[guessingTeam].name + "翻到黑色并出局。", false);
-      const nextCopy = currentTeam
-        ? "下一队是" + TEAMS[currentTeam].name + "；关闭提示后开始 " + formatTime(timerSettings.clue) + " 队长思考。"
-        : "没有仍在比赛中的队伍。";
-      message.textContent = TEAMS[guessingTeam].name + "翻到黑色并出局。" + nextCopy;
-      eliminationCopy.textContent = TEAMS[guessingTeam].name + "已被淘汰，之后的回合会自动跳过该队。";
-      dismissElimination.textContent = currentTeam ? "开始下一队" : "查看最终结果";
-      eliminationNotice.hidden = false;
+      if (!gameIsFinished()) {
+        message.textContent = TEAMS[guessingTeam].name + "翻到黑色并出局。下一队是" + TEAMS[currentTeam].name + "；关闭提示后开始 " + formatTime(timerSettings.clue) + " 队长思考。";
+        eliminationCopy.textContent = TEAMS[guessingTeam].name + "已被淘汰，之后的回合会自动跳过该队。";
+        dismissElimination.textContent = "开始下一队";
+        eliminationNotice.hidden = false;
+      }
     } else if (card.role === guessingTeam) {
       if (targetCompleted) {
         const completedCopy = completionMessage(guessingTeam);
@@ -623,6 +769,8 @@ function setupPlay() {
     eliminatedTeams = {};
     completionRounds = {};
     eliminationNotice.hidden = true;
+    finalResults.hidden = true;
+    stopCelebration();
     setGameInUrl(seed, imageRevision, layoutRevision);
     configureTimer("prep", timerSettings.prep, false);
     saveState();
@@ -654,6 +802,8 @@ function setupPlay() {
     eliminatedTeams = {};
     completionRounds = {};
     eliminationNotice.hidden = true;
+    finalResults.hidden = true;
+    stopCelebration();
     configureTimer("prep", timerSettings.prep, false);
     message.textContent = "本局进度已重置。请开始 " + formatTime(timerSettings.prep) + " 的全体队长准备时间。";
     saveState();
@@ -665,6 +815,7 @@ function setupPlay() {
     prepMinutesInput.value = String(settings.prep / 60);
     clueSecondsInput.value = String(settings.clue);
     guessSecondsInput.value = String(settings.guess);
+    fontSizeInput.value = fontSizePreset;
   }
 
   function normalizeTimerSettings(nextSettings) {
@@ -686,7 +837,7 @@ function setupPlay() {
     timerSettings = normalizeTimerSettings(nextSettings);
     localStorage.setItem(timerSettingsKey, JSON.stringify(timerSettings));
     configureTimer(timerPhase, timerSettings[timerPhase], shouldResume && !gameIsFinished());
-    message.textContent = "时间安排已更新：开场 " + formatTime(timerSettings.prep) + "，队长 " + formatTime(timerSettings.clue) + "，答题 " + formatTime(timerSettings.guess) + "。";
+    message.textContent = "设置已更新：字号" + FONT_SIZE_NAMES[fontSizePreset] + "，开场 " + formatTime(timerSettings.prep) + "，队长 " + formatTime(timerSettings.clue) + "，答题 " + formatTime(timerSettings.guess) + "。";
   }
 
   function openTimerSettings() {
@@ -760,6 +911,8 @@ function setupPlay() {
 
   function load(nextSeed, requestedImageRevision = null, requestedLayoutRevision = null) {
     stopTimer(false);
+    finalResults.hidden = true;
+    stopCelebration();
     seed = nextSeed;
     layoutRevision = Number.isInteger(requestedLayoutRevision) && requestedLayoutRevision >= 0 ? requestedLayoutRevision : 0;
     const restored = loadState();
@@ -771,6 +924,18 @@ function setupPlay() {
     if (!currentTeam && round > 0 && !gameIsFinished()) currentTeam = activeTeams()[0];
     setGameInUrl(seed, imageRevision, layoutRevision);
     eliminationNotice.hidden = true;
+    if (gameIsFinished()) {
+      currentTeam = null;
+      timerPhase = "guess";
+      timerRemaining = 0;
+      revealed = new Set(game.cards.map((card) => card.index));
+      message.textContent = "已恢复最终结果；所有答案均已显示。";
+      renderTimer();
+      renderBoard();
+      renderStatus();
+      showFinalResults();
+      return;
+    }
     if (currentTeam) {
       configureTimer("clue", timerSettings.clue, false);
       message.textContent = "已恢复本局进度。当前为" + TEAMS[currentTeam].name + "，请继续队长思考计时。";
@@ -797,7 +962,10 @@ function setupPlay() {
   });
   timerSettingsButton.addEventListener("click", openTimerSettings);
   document.querySelector("#timer-settings-close").addEventListener("click", closeTimerSettings);
-  document.querySelector("#timer-settings-defaults").addEventListener("click", () => fillTimerSettingsForm(DEFAULT_TIMER_SECONDS));
+  document.querySelector("#timer-settings-defaults").addEventListener("click", () => {
+    fillTimerSettingsForm(DEFAULT_TIMER_SECONDS);
+    fontSizeInput.value = "huge";
+  });
   timerSettingsModal.addEventListener("click", (event) => {
     if (event.target === timerSettingsModal) closeTimerSettings();
   });
@@ -808,6 +976,7 @@ function setupPlay() {
     event.preventDefault();
     const shouldResume = resumeTimerAfterSettings;
     resumeTimerAfterSettings = false;
+    applyFontSizePreset(fontSizeInput.value);
     applyTimerSettings({
       prep: Number(prepMinutesInput.value) * 60,
       clue: Number(clueSecondsInput.value),
@@ -815,6 +984,7 @@ function setupPlay() {
     }, shouldResume);
     timerSettingsModal.hidden = true;
     timerSettingsButton.focus();
+    window.requestAnimationFrame(() => setSidebarWidth(turnConsole.getBoundingClientRect().width, false));
   });
   fullscreenButton.addEventListener("click", async () => {
     if (!document.fullscreenElement) await document.documentElement.requestFullscreen();
@@ -830,6 +1000,14 @@ function setupPlay() {
   dismissElimination.addEventListener("click", () => {
     eliminationNotice.hidden = true;
     if (currentTeam && isActive(currentTeam)) startTimer();
+  });
+  viewResultsButton.addEventListener("click", showFinalResults);
+  dismissResults.addEventListener("click", hideFinalResults);
+  finalResults.addEventListener("click", (event) => {
+    if (event.target === finalResults) hideFinalResults();
+  });
+  finalResults.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") hideFinalResults();
   });
   window.addEventListener("storage", (event) => {
     if (event.key !== stateKey()) return;
@@ -964,13 +1142,14 @@ function setupPlay() {
   registerWebTool({
     name: "set_codenames_timer_settings",
     title: "设置游戏时间",
-    description: "设置开场准备、队长思考和队员答题三个阶段的秒数，并按新设置重置当前阶段。",
+    description: "设置开场准备、队长思考和队员答题三个阶段的秒数，也可以调整界面字号，并按新设置重置当前阶段。",
     inputSchema: {
       type: "object",
       properties: {
         prepSeconds: { type: "integer", minimum: 15, maximum: 3600 },
         clueSeconds: { type: "integer", minimum: 5, maximum: 3600 },
-        guessSeconds: { type: "integer", minimum: 5, maximum: 3600 }
+        guessSeconds: { type: "integer", minimum: 5, maximum: 3600 },
+        fontSize: { type: "string", enum: ["large", "huge", "giant"] }
       },
       required: ["prepSeconds", "clueSeconds", "guessSeconds"],
       additionalProperties: false
@@ -978,8 +1157,9 @@ function setupPlay() {
     annotations: { readOnlyHint: false, untrustedContentHint: false },
     execute(input) {
       const wasRunning = timerRunning;
+      if (input?.fontSize) applyFontSizePreset(input.fontSize);
       applyTimerSettings({ prep: input?.prepSeconds, clue: input?.clueSeconds, guess: input?.guessSeconds }, wasRunning);
-      return { ...timerSettings, timerPhase, timerRemaining };
+      return { ...timerSettings, fontSize: fontSizePreset, timerPhase, timerRemaining };
     }
   });
 

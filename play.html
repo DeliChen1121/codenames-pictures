@@ -62,6 +62,7 @@
 
           <div class="turn-actions">
             <button class="button button-primary" id="next-team" type="button" disabled>下一个队伍 <span aria-hidden="true">→</span></button>
+            <button class="button button-secondary" id="view-results" type="button" hidden>查看最终排名 <span aria-hidden="true">🎉</span></button>
           </div>
 
           <p class="game-message" id="game-message" role="status" aria-live="polite">先开始 2 分钟的全体队长准备时间。</p>
@@ -91,7 +92,7 @@
           <button class="settings-close" id="timer-settings-close" type="button" aria-label="关闭时间设置">×</button>
         </div>
 
-        <p class="settings-help">保存后会按新设置重新开始当前阶段；之后的新回合也会沿用。</p>
+        <p class="settings-help">保存后会应用新的界面字号，并按新时间重新开始当前阶段。</p>
 
         <label class="time-setting" for="settings-prep-minutes">
           <span><strong>开场准备</strong><small>四位队长共同查看答案</small></span>
@@ -108,11 +109,34 @@
           <span class="time-input"><input id="settings-guess-seconds" type="number" min="5" max="600" step="5" required /><em>秒</em></span>
         </label>
 
+        <label class="time-setting" for="settings-font-size">
+          <span><strong>界面字体</strong><small>同时放大按钮与主持人控制区</small></span>
+          <span class="time-input">
+            <select id="settings-font-size">
+              <option value="large">大</option>
+              <option value="huge">超大（默认）</option>
+              <option value="giant">特大</option>
+            </select>
+          </span>
+        </label>
+
         <div class="settings-actions">
           <button class="text-button" id="timer-settings-defaults" type="button">恢复默认</button>
           <button class="button button-primary" type="submit">保存时间安排</button>
         </div>
       </form>
+    </div>
+
+    <div class="final-results" id="final-results" hidden>
+      <canvas id="celebration-canvas" aria-hidden="true"></canvas>
+      <section class="final-results-card" role="dialog" aria-modal="true" aria-labelledby="final-results-title">
+        <span class="celebration-mark" aria-hidden="true">🎉</span>
+        <p class="eyebrow">GAME COMPLETE</p>
+        <h2 id="final-results-title">本局排名</h2>
+        <p class="final-results-copy">所有答案已经显示在题板上。</p>
+        <div class="ranking-list" id="ranking-list"></div>
+        <button class="button button-primary" id="dismiss-results" type="button">查看全部答案</button>
+      </section>
     </div>
 
     <script type="module" src="./app.js"></script>
