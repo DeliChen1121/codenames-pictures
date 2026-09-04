@@ -4,71 +4,24 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#07111f" />
-    <meta name="description" content="四队现场版代号图像 Master Card 生成器" />
-    <title>Master Card · 代号：图像</title>
+    <meta name="description" content="四队现场版代号图像游戏" />
+    <title>代号：图像 · 四队现场版</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
-  <body data-view="master">
-    <main class="shell master-shell">
-      <header class="topbar">
-        <a class="brand" href="./index.html" aria-label="返回 Master Card">
-          <span class="brand-mark" aria-hidden="true">⌁</span>
-          <span><strong>代号：图像</strong><small>四队现场版</small></span>
-        </a>
-        <span class="privacy-pill"><span aria-hidden="true">●</span> 队长专用</span>
-      </header>
+  <body data-view="start">
+    <main class="start-shell">
+      <section class="start-card" aria-labelledby="start-title">
+        <p class="eyebrow">CODENAMES · PICTURES</p>
+        <h1 id="start-title">代号：图像</h1>
+        <p class="start-lede">四队现场对战。每队由一位队长查看答案，其余队员根据“一个词 + 一个数字”的提示猜图片。</p>
 
-      <section class="master-layout">
-        <div class="master-copy">
-          <p class="eyebrow">MASTER CARD</p>
-          <h1>先生成答案，<br />再开启题板。</h1>
-          <p class="lede">每一局由唯一局号锁定 25 个位置的颜色答案；玩家页可以更换表面图片而不改变答案。请只在队长能看到的设备上使用此页。</p>
-
-          <form class="seed-form" id="seed-form">
-            <label for="game-code">局号</label>
-            <div class="seed-input-row">
-              <input id="game-code" name="game" maxlength="10" autocomplete="off" spellcheck="false" aria-describedby="seed-help" />
-              <button class="button button-quiet" type="submit">载入</button>
-            </div>
-            <small id="seed-help">输入已有局号，或生成一局新的答案。</small>
-          </form>
-
-          <div class="master-actions">
-            <button class="button button-primary" id="new-game" type="button">生成新局</button>
-            <a class="button button-secondary" id="open-play" href="./play.html">打开玩家题板</a>
-          </div>
-
-          <button class="copy-link" id="copy-link" type="button">复制玩家题板链接</button>
-          <p class="inline-feedback" id="copy-feedback" role="status" aria-live="polite"></p>
+        <div class="start-rules" aria-label="游戏规则简介">
+          <p><strong>25 张图片</strong><span>红、黄、蓝、绿各 5 张，另有 1 张黑色和 4 张白色。</span></p>
+          <p><strong>猜中本队</strong><span>可以继续；翻到其他队、白色或主动结束时换下一队。</span></p>
+          <p><strong>翻到黑色</strong><span>当前队伍淘汰；同一轮完成的队伍并列。</span></p>
         </div>
 
-        <div class="master-board-panel">
-          <div class="panel-heading">
-            <div>
-              <span class="section-label">本局答案</span>
-              <strong id="master-code-label">—</strong>
-            </div>
-            <button class="reveal-control" id="reveal-master" type="button" aria-pressed="false">
-              <span aria-hidden="true">◉</span> 显示答案
-            </button>
-          </div>
-
-          <div class="master-board is-hidden" id="master-board" aria-label="5乘5答案卡"></div>
-
-          <div class="legend" aria-label="颜色分配">
-            <span><i class="dot red"></i>红队 5</span>
-            <span><i class="dot yellow"></i>黄队 5</span>
-            <span><i class="dot blue"></i>蓝队 5</span>
-            <span><i class="dot green"></i>绿队 5</span>
-            <span><i class="dot black"></i>黑色 1</span>
-            <span><i class="dot white"></i>白色 4</span>
-          </div>
-        </div>
-      </section>
-
-      <section class="master-note">
-        <span class="note-index">01</span>
-        <p><strong>推荐流程</strong>：队长生成新局 → 打开或分享玩家题板 → 主持人在大屏上控制揭牌和回合。</p>
+        <button class="button button-primary start-button" id="start-game" type="button">开始游戏 <span aria-hidden="true">→</span></button>
       </section>
     </main>
     <script type="module" src="./app.js"></script>

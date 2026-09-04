@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#07111f" />
+    <meta name="description" content="四队现场版代号图像队长答案" />
+    <title>队长答案 · 代号：图像</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body data-view="master">
+    <main class="shell answer-shell">
+      <header class="topbar answer-topbar">
+        <a class="brand" href="./index.html" aria-label="返回开始页面">
+          <span class="brand-mark" aria-hidden="true">⌁</span>
+          <span><strong>队长答案</strong><small>仅限队长查看</small></span>
+        </a>
+        <div class="answer-meta">
+          <span class="game-code-pill">局号 <strong id="master-code-label">—</strong></span>
+          <a class="button button-quiet" id="open-play" href="./play.html">返回玩家题板</a>
+        </div>
+      </header>
+
+      <section class="answer-heading">
+        <div>
+          <p class="eyebrow">MASTER CARD</p>
+          <h1>颜色答案</h1>
+        </div>
+        <p>图片与玩家题板一一对应。请不要让队员看到这个页面。</p>
+      </section>
+
+      <section class="answer-board" id="master-board" aria-label="5乘5队长答案卡"></section>
+
+      <div class="legend answer-legend" aria-label="颜色分配">
+        <span><i class="dot red"></i>红队 5</span>
+        <span><i class="dot yellow"></i>黄队 5</span>
+        <span><i class="dot blue"></i>蓝队 5</span>
+        <span><i class="dot green"></i>绿队 5</span>
+        <span><i class="dot black"></i>黑色 1</span>
+        <span><i class="dot white"></i>白色 4</span>
+      </div>
+    </main>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

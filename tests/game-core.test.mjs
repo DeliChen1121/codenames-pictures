@@ -17,13 +17,20 @@ test("the same game code always produces the same board", () => {
 });
 
 test("refreshing pictures does not change the hidden color layout", () => {
-  const firstDeck = buildGame("REFRESH", 0);
-  const secondDeck = buildGame("REFRESH", 1);
+  const firstDeck = buildGame("REFRESH", 0, 4);
+  const secondDeck = buildGame("REFRESH", 1, 4);
   assert.deepEqual(firstDeck.cards.map((card) => card.role), secondDeck.cards.map((card) => card.role));
   assert.equal(
     firstDeck.cards.some((card, index) => card.imageId === secondDeck.cards[index].imageId),
     false
   );
+});
+
+test("refreshing the color layout keeps the same pictures", () => {
+  const firstLayout = buildGame("LAYOUT", 3, 0);
+  const secondLayout = buildGame("LAYOUT", 3, 1);
+  assert.deepEqual(firstLayout.cards.map((card) => card.imageId), secondLayout.cards.map((card) => card.imageId));
+  assert.notDeepEqual(firstLayout.cards.map((card) => card.role), secondLayout.cards.map((card) => card.role));
 });
 
 test("a board contains 25 unique image cards", () => {

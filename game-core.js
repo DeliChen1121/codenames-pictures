@@ -60,10 +60,12 @@ function shuffle(items, random) {
   return copy;
 }
 
-export function buildGame(rawSeed, imageRevision = 0) {
+export function buildGame(rawSeed, imageRevision = 0, layoutRevision = 0) {
   const seed = normalizeSeed(rawSeed) || "MVP2026";
   const imageRandom = mulberry32(hashString(seed + ":images"));
-  const roleRandom = mulberry32(hashString(seed + ":roles"));
+  const safeLayoutRevision = Math.max(0, Number(layoutRevision) || 0);
+  const roleKey = safeLayoutRevision === 0 ? seed + ":roles" : seed + ":roles:" + safeLayoutRevision;
+  const roleRandom = mulberry32(hashString(roleKey));
   const imagePool = Array.from({ length: 280 }, (_, index) => index);
   const roles = [
     ...Array(5).fill("red"),
@@ -84,6 +86,7 @@ export function buildGame(rawSeed, imageRevision = 0) {
   return {
     seed,
     imageRevision: Math.max(0, Number(imageRevision) || 0),
+    layoutRevision: safeLayoutRevision,
     cards: images.map((imageId, index) => ({
       index,
       imageId,

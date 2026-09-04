@@ -40,133 +40,139 @@ function getSeedFromUrl() {
 }
 
 function getImageRevisionFromUrl() {
-  const rawRevision = new URLSearchParams(window.location.search).get("deck");
+  return getRevisionFromUrl("deck");
+}
+
+function getLayoutRevisionFromUrl() {
+  return getRevisionFromUrl("layout");
+}
+
+function getRevisionFromUrl(name) {
+  const rawRevision = new URLSearchParams(window.location.search).get(name);
   if (rawRevision === null || !/^\d+$/.test(rawRevision)) return null;
   return Number(rawRevision);
 }
 
-function setGameInUrl(seed, imageRevision = null) {
+function setRevisionInUrl(url, name, revision) {
+  if (Number.isInteger(revision) && revision > 0) {
+    url.searchParams.set(name, String(revision));
+  } else {
+    url.searchParams.delete(name);
+  }
+}
+
+function setGameInUrl(seed, imageRevision = 0, layoutRevision = 0) {
   const url = new URL(window.location.href);
   url.searchParams.set("game", seed);
-  if (Number.isInteger(imageRevision) && imageRevision > 0) {
-    url.searchParams.set("deck", String(imageRevision));
-  } else {
-    url.searchParams.delete("deck");
-  }
+  setRevisionInUrl(url, "deck", imageRevision);
+  setRevisionInUrl(url, "layout", layoutRevision);
   window.history.replaceState({}, "", url);
 }
 
-function playUrl(seed) {
+function playUrl(seed, imageRevision = 0, layoutRevision = 0) {
   const url = new URL("./play.html", window.location.href);
   url.searchParams.set("game", seed);
-  url.searchParams.delete("deck");
+  setRevisionInUrl(url, "deck", imageRevision);
+  setRevisionInUrl(url, "layout", layoutRevision);
   return url;
 }
 
-function masterUrl(seed) {
-  const url = new URL("./index.html", window.location.href);
+function masterUrl(seed, imageRevision = 0, layoutRevision = 0) {
+  const url = new URL("./master.html", window.location.href);
   url.searchParams.set("game", seed);
-  url.searchParams.delete("deck");
+  setRevisionInUrl(url, "deck", imageRevision);
+  setRevisionInUrl(url, "layout", layoutRevision);
   return url;
 }
 
-function fillSeedForm(seed) {
-  const input = document.querySelector("#game-code");
-  if (input) input.value = seed;
+function imageSource(imageId) {
+  return "./images/cards/card-" + imageId + ".jpg";
 }
 
-function wireSeedForm(onSeed) {
-  const form = document.querySelector("#seed-form");
-  if (!form) return;
-  form.addEventListener("submit", (event) => {
-    event.preventDefault();
-    const input = form.querySelector("#game-code");
-    const seed = normalizeSeed(input.value);
-    if (!seed) {
-      input.focus();
+function fallbackImageSource(imageId) {
+  return "https://samdemaeyer.github.io/codenames-pictures/images/cards/card-" + imageId + ".jpg";
+}
+
+function loadCardImage(card, container) {
+  const image = document.createElement("img");
+  image.alt = "图片 " + card.coordinate;
+  image.loading = "eager";
+  image.src = imageSource(card.imageId);
+  image.addEventListener("error", () => {
+    if (image.dataset.fallbackUsed) {
+      container.classList.add("image-missing");
       return;
     }
-    onSeed(seed);
+    image.dataset.fallbackUsed = "true";
+    image.src = fallbackImageSource(card.imageId);
   });
+  return image;
 }
 
-function roleCell(card) {
-  const cell = document.createElement("div");
-  cell.className = "master-cell role-" + card.role;
-  cell.dataset.role = card.role;
-  cell.innerHTML = '<span class="cell-coordinate">' + card.coordinate + '</span><strong>' + ROLE_NAMES[card.role] + "</strong>";
-  return cell;
+function masterPictureCard(card) {
+  const cardElement = document.createElement("article");
+  cardElement.className = "picture-card answer-card is-revealed";
+  cardElement.dataset.role = card.role;
+  cardElement.setAttribute("aria-label", "图片 " + card.coordinate + "：" + ROLE_NAMES[card.role]);
+
+  const coordinate = document.createElement("span");
+  coordinate.className = "picture-coordinate";
+  coordinate.textContent = card.coordinate;
+
+  const roleLabel = document.createElement("strong");
+  roleLabel.className = "answer-role";
+  roleLabel.textContent = ROLE_NAMES[card.role];
+
+  cardElement.append(loadCardImage(card, cardElement), coordinate, roleLabel);
+  return cardElement;
 }
 
-function setupMaster() {
-  let seed = getSeedFromUrl() || createGameCode();
-  let game = buildGame(seed);
-  let revealed = false;
-
-  const board = document.querySelector("#master-board");
-  const codeLabel = document.querySelector("#master-code-label");
-  const playLink = document.querySelector("#open-play");
-  const masterToggle = document.querySelector("#reveal-master");
-  const copyButton = document.querySelector("#copy-link");
-  const copyFeedback = document.querySelector("#copy-feedback");
-
-  function render() {
-    setGameInUrl(seed);
-    fillSeedForm(seed);
-    codeLabel.textContent = seed;
-    playLink.href = playUrl(seed).href;
-    board.replaceChildren(...game.cards.map(roleCell));
-    board.classList.toggle("is-hidden", !revealed);
-    masterToggle.setAttribute("aria-pressed", String(revealed));
-    masterToggle.innerHTML = revealed
-      ? '<span aria-hidden="true">◌</span> 隐藏答案'
-      : '<span aria-hidden="true">◉</span> 显示答案';
+function setupStart() {
+  function startNewGame() {
+    const seed = createGameCode();
+    window.location.href = playUrl(seed).href;
+    return { gameCode: seed };
   }
 
-  function load(nextSeed) {
-    seed = nextSeed;
-    game = buildGame(seed);
-    revealed = false;
-    copyFeedback.textContent = "";
-    render();
-  }
-
-  document.querySelector("#new-game").addEventListener("click", () => load(createGameCode()));
-  masterToggle.addEventListener("click", () => {
-    revealed = !revealed;
-    render();
-  });
-  copyButton.addEventListener("click", async () => {
-    try {
-      await navigator.clipboard.writeText(playUrl(seed).href);
-      copyFeedback.textContent = "玩家题板链接已复制";
-    } catch {
-      copyFeedback.textContent = "复制失败，请直接打开玩家题板后复制地址";
-    }
-  });
-  wireSeedForm(load);
-  render();
+  document.querySelector("#start-game").addEventListener("click", startNewGame);
 
   registerWebTool({
-    name: "create_new_codenames_game",
-    title: "生成新的代号局",
-    description: "生成新的局号、答案卡和对应玩家题板链接，并更新当前页面。",
+    name: "start_new_codenames_game",
+    title: "开始新游戏",
+    description: "生成新的局号并进入 25 张图片的主持人题板。",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
     annotations: { readOnlyHint: false, untrustedContentHint: false },
     execute(input) {
       assertEmptyInput(input);
-      load(createGameCode());
-      return { gameCode: seed, playerBoardUrl: playUrl(seed).href };
+      return startNewGame();
     }
   });
 }
 
+function setupMaster() {
+  let seed = getSeedFromUrl() || createGameCode();
+  const imageRevision = getImageRevisionFromUrl() ?? 0;
+  const layoutRevision = getLayoutRevisionFromUrl() ?? 0;
+  const game = buildGame(seed, imageRevision, layoutRevision);
+
+  const board = document.querySelector("#master-board");
+  const codeLabel = document.querySelector("#master-code-label");
+  const playLink = document.querySelector("#open-play");
+
+  setGameInUrl(seed, imageRevision, layoutRevision);
+  codeLabel.textContent = seed;
+  playLink.href = playUrl(seed, imageRevision, layoutRevision).href;
+  board.replaceChildren(...game.cards.map(masterPictureCard));
+}
+
 function setupPlay() {
   const timerSettingsKey = "codenames-four-teams:timer-settings-v1";
+  const sidebarWidthKey = "codenames-four-teams:sidebar-width-v1";
   let timerSettings = loadTimerSettings();
   let seed = getSeedFromUrl() || createGameCode();
-  let imageRevision = 0;
-  let game = buildGame(seed, imageRevision);
+  let imageRevision = getImageRevisionFromUrl() ?? 0;
+  let layoutRevision = getLayoutRevisionFromUrl() ?? 0;
+  let game = buildGame(seed, imageRevision, layoutRevision);
   let revealed = new Set();
   let currentTeam = null;
   let round = 0;
@@ -189,9 +195,15 @@ function setupPlay() {
   const timerPhaseLabel = document.querySelector("#timer-phase");
   const timerDisplay = document.querySelector("#timer-display");
   const timerToggle = document.querySelector("#timer-toggle");
+  const timerSkip = document.querySelector("#timer-skip");
   const startAnsweringButton = document.querySelector("#start-answering");
   const nextTeamButton = document.querySelector("#next-team");
   const fullscreenButton = document.querySelector("#fullscreen");
+  const gameCodeLabel = document.querySelector("#game-code-label");
+  const copyMasterButton = document.querySelector("#copy-master-link");
+  const copyMasterFeedback = document.querySelector("#copy-master-feedback");
+  const gameLayout = document.querySelector(".game-layout");
+  const sidebarResizer = document.querySelector("#sidebar-resizer");
   const timerSettingsButton = document.querySelector("#timer-settings");
   const timerSettingsModal = document.querySelector("#timer-settings-modal");
   const timerSettingsForm = document.querySelector("#timer-settings-form");
@@ -203,6 +215,10 @@ function setupPlay() {
   const dismissElimination = document.querySelector("#dismiss-elimination");
 
   function stateKey() {
+    return "codenames-four-teams:" + seed + ":layout:" + layoutRevision;
+  }
+
+  function legacyStateKey() {
     return "codenames-four-teams:" + seed;
   }
 
@@ -227,13 +243,14 @@ function setupPlay() {
 
   function saveState() {
     localStorage.setItem(stateKey(), JSON.stringify({
-      version: 2,
+      version: 3,
       revealed: [...revealed],
       currentTeam,
       round,
       eliminatedTeams,
       completionRounds,
-      imageRevision
+      imageRevision,
+      layoutRevision
     }));
   }
 
@@ -253,8 +270,8 @@ function setupPlay() {
     completionRounds = {};
     imageRevision = 0;
     try {
-      const stored = JSON.parse(localStorage.getItem(stateKey()) || "null");
-      if (!stored || stored.version !== 2) return false;
+      const stored = JSON.parse(localStorage.getItem(stateKey()) || (layoutRevision === 0 ? localStorage.getItem(legacyStateKey()) : "") || "null");
+      if (!stored || ![2, 3].includes(stored.version)) return false;
       if (Array.isArray(stored.revealed)) {
         revealed = new Set(stored.revealed.filter((index) => Number.isInteger(index) && index >= 0 && index < 25));
       }
@@ -268,14 +285,6 @@ function setupPlay() {
       localStorage.removeItem(stateKey());
       return false;
     }
-  }
-
-  function imageSource(imageId) {
-    return "./images/cards/card-" + imageId + ".jpg";
-  }
-
-  function fallbackImageSource(imageId) {
-    return "https://samdemaeyer.github.io/codenames-pictures/images/cards/card-" + imageId + ".jpg";
   }
 
   function isActive(team) {
@@ -307,18 +316,7 @@ function setupPlay() {
     button.dataset.role = card.role;
     button.setAttribute("aria-label", "图片 " + card.coordinate + (isRevealed ? "，已翻开：" + ROLE_NAMES[card.role] : "，未翻开"));
 
-    const image = document.createElement("img");
-    image.alt = "图片 " + card.coordinate;
-    image.loading = "eager";
-    image.src = imageSource(card.imageId);
-    image.addEventListener("error", () => {
-      if (image.dataset.fallbackUsed) {
-        button.classList.add("image-missing");
-        return;
-      }
-      image.dataset.fallbackUsed = "true";
-      image.src = fallbackImageSource(card.imageId);
-    });
+    const image = loadCardImage(card, button);
 
     const coordinate = document.createElement("span");
     coordinate.className = "picture-coordinate";
@@ -409,7 +407,7 @@ function setupPlay() {
     startAnsweringButton.disabled = finished || !currentTeam || !isActive(currentTeam) || timerPhase !== "clue";
     startAnsweringButton.querySelector("span").textContent = "+ " + formatTime(timerSettings.guess);
     nextTeamButton.disabled = finished || !currentTeam || !isActive(currentTeam);
-    document.querySelector("#master-link").href = masterUrl(seed).href;
+    gameCodeLabel.textContent = seed;
     renderTeams();
     updateBoardAvailability();
   }
@@ -431,6 +429,8 @@ function setupPlay() {
       timerToggle.textContent = "继续";
     }
     timerToggle.disabled = gameIsFinished() || (timerPhase === "guess" && timerRemaining === 0);
+    timerSkip.textContent = timerPhase === "prep" ? "跳过准备" : timerPhase === "clue" ? "跳过思考" : "跳过答题";
+    timerSkip.disabled = gameIsFinished();
     timer.classList.toggle("is-urgent", timerRemaining <= 10);
   }
 
@@ -499,6 +499,22 @@ function setupPlay() {
       renderTimer();
     }, 1000);
     renderTimer();
+  }
+
+  function skipTimerPhase() {
+    if (gameIsFinished()) return;
+    stopTimer(false);
+    timerRemaining = 0;
+    renderTimer();
+    if (timerPhase === "prep") {
+      startFirstTurn();
+      return;
+    }
+    if (timerPhase === "clue") {
+      startAnswering();
+      return;
+    }
+    advanceTeam("主持人跳过了答题倒计时。", true);
   }
 
   function findNextActive(fromTeam) {
@@ -590,12 +606,45 @@ function setupPlay() {
 
   function refreshImages() {
     imageRevision += 1;
-    game = buildGame(seed, imageRevision);
-    setGameInUrl(seed, imageRevision);
+    game = buildGame(seed, imageRevision, layoutRevision);
+    setGameInUrl(seed, imageRevision, layoutRevision);
     saveState();
     renderBoard();
     renderStatus();
     message.textContent = "表面图片已刷新；25 个位置下方的答案颜色完全不变。";
+  }
+
+  function refreshLayout() {
+    layoutRevision += 1;
+    game = buildGame(seed, imageRevision, layoutRevision);
+    revealed = new Set();
+    currentTeam = null;
+    round = 0;
+    eliminatedTeams = {};
+    completionRounds = {};
+    eliminationNotice.hidden = true;
+    setGameInUrl(seed, imageRevision, layoutRevision);
+    configureTimer("prep", timerSettings.prep, false);
+    saveState();
+    renderBoard();
+    renderStatus();
+    message.textContent = "隐藏颜色已重新分布，图片保持不变；请把新的队长答案链接发给队长。";
+  }
+
+  async function copyMasterLink() {
+    const url = masterUrl(seed, imageRevision, layoutRevision).href;
+    try {
+      await navigator.clipboard.writeText(url);
+      copyMasterFeedback.textContent = "队长答案链接已复制";
+      copyMasterButton.textContent = "已复制";
+      window.setTimeout(() => {
+        copyMasterButton.textContent = "复制队长答案链接";
+        copyMasterFeedback.textContent = "";
+      }, 1800);
+    } catch {
+      copyMasterFeedback.textContent = "复制失败，请打开队长答案页后复制浏览器地址";
+    }
+    return url;
   }
 
   function resetGame() {
@@ -655,18 +704,72 @@ function setupPlay() {
     timerSettingsButton.focus();
   }
 
-  function load(nextSeed, requestedImageRevision = null) {
+  function sidebarWidthBounds() {
+    return {
+      min: 288,
+      max: Math.max(288, Math.min(520, window.innerWidth - 520))
+    };
+  }
+
+  function setSidebarWidth(nextWidth, persist = true) {
+    const bounds = sidebarWidthBounds();
+    const width = Math.round(Math.min(bounds.max, Math.max(bounds.min, Number(nextWidth) || 352)));
+    gameLayout.style.setProperty("--sidebar-width", width + "px");
+    sidebarResizer.setAttribute("aria-valuemin", String(bounds.min));
+    sidebarResizer.setAttribute("aria-valuemax", String(bounds.max));
+    sidebarResizer.setAttribute("aria-valuenow", String(width));
+    if (persist) localStorage.setItem(sidebarWidthKey, String(width));
+    return width;
+  }
+
+  function setupSidebarResize() {
+    setSidebarWidth(Number(localStorage.getItem(sidebarWidthKey)) || turnConsole.getBoundingClientRect().width, false);
+
+    sidebarResizer.addEventListener("pointerdown", (event) => {
+      if (window.innerWidth <= 900) return;
+      event.preventDefault();
+      const rightEdge = turnConsole.getBoundingClientRect().right;
+      sidebarResizer.setPointerCapture(event.pointerId);
+      document.body.classList.add("is-resizing-sidebar");
+
+      const onMove = (moveEvent) => setSidebarWidth(rightEdge - moveEvent.clientX);
+      const onEnd = () => {
+        document.body.classList.remove("is-resizing-sidebar");
+        sidebarResizer.removeEventListener("pointermove", onMove);
+        sidebarResizer.removeEventListener("pointerup", onEnd);
+        sidebarResizer.removeEventListener("pointercancel", onEnd);
+      };
+
+      sidebarResizer.addEventListener("pointermove", onMove);
+      sidebarResizer.addEventListener("pointerup", onEnd);
+      sidebarResizer.addEventListener("pointercancel", onEnd);
+    });
+
+    sidebarResizer.addEventListener("keydown", (event) => {
+      if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+      event.preventDefault();
+      const bounds = sidebarWidthBounds();
+      const current = turnConsole.getBoundingClientRect().width;
+      if (event.key === "Home") setSidebarWidth(bounds.min);
+      else if (event.key === "End") setSidebarWidth(bounds.max);
+      else setSidebarWidth(current + (event.key === "ArrowLeft" ? 20 : -20));
+    });
+
+    window.addEventListener("resize", () => setSidebarWidth(turnConsole.getBoundingClientRect().width, false));
+  }
+
+  function load(nextSeed, requestedImageRevision = null, requestedLayoutRevision = null) {
     stopTimer(false);
     seed = nextSeed;
+    layoutRevision = Number.isInteger(requestedLayoutRevision) && requestedLayoutRevision >= 0 ? requestedLayoutRevision : 0;
     const restored = loadState();
     if (Number.isInteger(requestedImageRevision) && requestedImageRevision >= 0) {
       imageRevision = requestedImageRevision;
     }
-    game = buildGame(seed, imageRevision);
+    game = buildGame(seed, imageRevision, layoutRevision);
     if (currentTeam && !isActive(currentTeam)) currentTeam = null;
     if (!currentTeam && round > 0 && !gameIsFinished()) currentTeam = activeTeams()[0];
-    setGameInUrl(seed, imageRevision);
-    fillSeedForm(seed);
+    setGameInUrl(seed, imageRevision, layoutRevision);
     eliminationNotice.hidden = true;
     if (currentTeam) {
       configureTimer("clue", timerSettings.clue, false);
@@ -684,7 +787,10 @@ function setupPlay() {
   startAnsweringButton.addEventListener("click", () => startAnswering());
   nextTeamButton.addEventListener("click", () => advanceTeam("主持人结束了当前回合。", true));
   document.querySelector("#refresh-images").addEventListener("click", refreshImages);
+  document.querySelector("#refresh-layout").addEventListener("click", refreshLayout);
+  copyMasterButton.addEventListener("click", copyMasterLink);
   timerToggle.addEventListener("click", () => timerRunning ? stopTimer() : startTimer());
+  timerSkip.addEventListener("click", skipTimerPhase);
   document.querySelector("#timer-reset").addEventListener("click", () => {
     configureTimer(timerPhase, timerSettings[timerPhase], false);
     message.textContent = timerPresets[timerPhase].label + "已重新计时。";
@@ -725,11 +831,11 @@ function setupPlay() {
     eliminationNotice.hidden = true;
     if (currentTeam && isActive(currentTeam)) startTimer();
   });
-  wireSeedForm((nextSeed) => load(nextSeed));
   window.addEventListener("storage", (event) => {
     if (event.key !== stateKey()) return;
-    load(seed);
+    load(seed, imageRevision, layoutRevision);
   });
+  setupSidebarResize();
 
   registerWebTool({
     name: "reveal_codenames_picture",
@@ -822,6 +928,40 @@ function setupPlay() {
   });
 
   registerWebTool({
+    name: "refresh_codenames_layout",
+    title: "刷新颜色分布",
+    description: "保持当前 25 张图片不变，生成新的隐藏颜色分布并重置本局进度。",
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+    annotations: { readOnlyHint: false, untrustedContentHint: false },
+    execute(input) {
+      assertEmptyInput(input);
+      const previousRevision = layoutRevision;
+      refreshLayout();
+      return {
+        gameCode: seed,
+        previousRevision,
+        layoutRevision,
+        imagesUnchanged: true,
+        masterCardUrl: masterUrl(seed, imageRevision, layoutRevision).href
+      };
+    }
+  });
+
+  registerWebTool({
+    name: "skip_codenames_timer",
+    title: "跳过当前倒计时",
+    description: "立即结束当前倒计时：准备阶段进入红队，队长思考进入答题，答题阶段进入下一队。",
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+    annotations: { readOnlyHint: false, untrustedContentHint: false },
+    execute(input) {
+      assertEmptyInput(input);
+      const skippedPhase = timerPhase;
+      skipTimerPhase();
+      return { skippedPhase, currentTeam, round, timerPhase, timerRemaining };
+    }
+  });
+
+  registerWebTool({
     name: "set_codenames_timer_settings",
     title: "设置游戏时间",
     description: "设置开场准备、队长思考和队员答题三个阶段的秒数，并按新设置重置当前阶段。",
@@ -843,8 +983,9 @@ function setupPlay() {
     }
   });
 
-  load(seed, getImageRevisionFromUrl());
+  load(seed, getImageRevisionFromUrl(), getLayoutRevisionFromUrl());
 }
 
+if (view === "start") setupStart();
 if (view === "master") setupMaster();
 if (view === "play") setupPlay();
