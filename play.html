@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#07111f" />
-    <meta name="description" content="四队现场版代号图像主持题板" />
+    <meta name="description" content="2 至 4 队现场版代号图像主持题板" />
     <title>玩家题板 · 代号：图像</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
@@ -17,6 +17,7 @@
         </a>
 
         <div class="board-toolbar" aria-label="题板工具">
+          <span class="game-mode-pill" id="game-mode-label">—</span>
           <span class="game-code-pill">局号 <strong id="game-code-label">—</strong></span>
           <button class="button button-quiet" id="refresh-images" type="button">换图片</button>
           <button class="button button-quiet" id="refresh-layout" type="button">换分布</button>
@@ -28,7 +29,7 @@
       <p class="toolbar-feedback" id="copy-master-feedback" role="status" aria-live="polite"></p>
 
       <div class="game-layout">
-        <section class="game-board" id="game-board" aria-label="5乘5图片题板"></section>
+        <section class="game-board" id="game-board" aria-label="图片题板"></section>
 
         <aside class="host-sidebar" id="turn-console" data-team="prep" aria-label="主持人控制台">
           <div class="sidebar-resizer" id="sidebar-resizer" role="separator" aria-label="拖动调整主持人控制台宽度" aria-orientation="vertical" aria-valuemin="320" aria-valuemax="820" tabindex="0"><span aria-hidden="true">⋮</span></div>
@@ -41,7 +42,7 @@
                 <button class="settings-button" id="timer-settings" type="button" aria-label="时间设置" title="时间设置">⚙</button>
               </div>
             </div>
-            <p id="phase-instruction">四位队长一起查看答案；队友只看左侧图片。</p>
+            <p id="phase-instruction">所有队长一起查看答案；队友只看左侧图片。</p>
           </div>
 
           <div class="timer" aria-label="回合计时器">
@@ -58,7 +59,7 @@
 
           <button class="button button-answer" id="start-answering" type="button" disabled>开始答题 <span>+ 1:00</span></button>
 
-          <div class="team-switcher" id="team-switcher" role="group" aria-label="四队状态与当前队伍"></div>
+          <div class="team-switcher" id="team-switcher" role="group" aria-label="队伍状态与当前队伍"></div>
 
           <div class="turn-actions">
             <button class="button button-primary" id="next-team" type="button" disabled>下一个队伍 <span aria-hidden="true">→</span></button>
@@ -95,7 +96,7 @@
         <p class="settings-help">保存后会应用新的界面字号，并按新时间重新开始当前阶段。</p>
 
         <label class="time-setting" for="settings-prep-minutes">
-          <span><strong>开场准备</strong><small>四位队长共同查看答案</small></span>
+          <span><strong>开场准备</strong><small>所有队长共同查看答案</small></span>
           <span class="time-input"><input id="settings-prep-minutes" type="number" min="0.25" max="60" step="0.25" required /><em>分钟</em></span>
         </label>
 
@@ -133,7 +134,7 @@
         <span class="celebration-mark" aria-hidden="true">🎉</span>
         <p class="eyebrow">GAME COMPLETE</p>
         <h2 id="final-results-title">本局排名</h2>
-        <p class="final-results-copy">所有答案已经显示在题板上。</p>
+        <p class="final-results-copy" id="final-results-copy">所有答案已经显示在题板上。</p>
         <div class="ranking-list" id="ranking-list"></div>
         <button class="button button-primary" id="dismiss-results" type="button">查看全部答案</button>
       </section>

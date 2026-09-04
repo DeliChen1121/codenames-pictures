@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#07111f" />
-    <meta name="description" content="四队现场版代号图像队长答案" />
+    <meta name="description" content="2 至 4 队现场版代号图像队长答案" />
     <title>队长答案 · 代号：图像</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
@@ -25,20 +25,14 @@
         <div>
           <p class="eyebrow">MASTER CARD</p>
           <h1>颜色答案</h1>
+          <p class="answer-game-summary" id="master-game-summary"></p>
         </div>
         <p>图片与玩家题板一一对应。请不要让队员看到这个页面。</p>
       </section>
 
-      <section class="answer-board" id="master-board" aria-label="5乘5队长答案卡"></section>
+      <section class="answer-board" id="master-board" aria-label="队长答案卡"></section>
 
-      <div class="legend answer-legend" aria-label="颜色分配">
-        <span><i class="dot red"></i>红队 5</span>
-        <span><i class="dot yellow"></i>黄队 5</span>
-        <span><i class="dot blue"></i>蓝队 5</span>
-        <span><i class="dot green"></i>绿队 5</span>
-        <span><i class="dot black"></i>黑色 1</span>
-        <span><i class="dot white"></i>白色 4</span>
-      </div>
+      <div class="legend answer-legend" id="master-legend" aria-label="颜色分配"></div>
     </main>
     <script type="module" src="./app.js"></script>
   </body>

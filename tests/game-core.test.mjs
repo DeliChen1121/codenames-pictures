@@ -2,14 +2,18 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  GAME_MODES,
   TEAM_ORDER,
   answerTimeWithCarry,
   buildGame,
   calculatePlacements,
+  createGameConfig,
+  getGamePreset,
   nextActiveTurn,
   nextTeam,
   normalizeSeed,
-  roleCounts
+  roleCounts,
+  teamsForCount
 } from "../game-core.js";
 
 test("the same game code always produces the same board", () => {
@@ -91,4 +95,70 @@ test("turns skip inactive teams and increment the round only after wrapping", ()
   assert.deepEqual(nextActiveTurn("green", ["blue", "green"], 3), { team: "blue", round: 4 });
   assert.deepEqual(nextActiveTurn("blue", ["blue"], 4), { team: "blue", round: 5 });
   assert.equal(nextActiveTurn("red", [], 2), null);
+});
+
+test("all nine team and speed presets exactly fill their grids", () => {
+  for (const teamCount of [2, 3, 4]) {
+    for (const mode of GAME_MODES) {
+      const config = createGameConfig({ teamCount, mode }, "PRESETS");
+      const counts = roleCounts(buildGame("PRESETS", 0, 0, config).cards);
+      assert.equal(config.cardCount, config.gridSize ** 2);
+      assert.equal(Object.values(config.teamCounts).reduce((sum, count) => sum + count, 0)
+        + config.whiteCount + config.blackCount, config.cardCount);
+      for (const team of config.activeTeams) assert.equal(counts[team], config.teamCounts[team]);
+      assert.equal(counts.white, config.whiteCount);
+      assert.equal(counts.black, config.blackCount);
+    }
+  }
+});
+
+test("preset values match the requested rules", () => {
+  assert.deepEqual(getGamePreset(2, "quick"), { gridSize: 4, firstCount: 6, secondCount: 5, whiteCount: 4, blackCount: 1 });
+  assert.deepEqual(getGamePreset(2, "classic"), { gridSize: 5, firstCount: 9, secondCount: 8, whiteCount: 7, blackCount: 1 });
+  assert.deepEqual(getGamePreset(2, "slow"), { gridSize: 6, firstCount: 12, secondCount: 11, whiteCount: 11, blackCount: 2 });
+  assert.deepEqual(getGamePreset(3, "classic"), { gridSize: 5, perTeamCount: 6, whiteCount: 6, blackCount: 1 });
+  assert.deepEqual(getGamePreset(4, "slow"), { gridSize: 6, perTeamCount: 7, whiteCount: 6, blackCount: 2 });
+});
+
+test("two-team mode contains only red and blue and gives the first team the extra card", () => {
+  const config = createGameConfig({ teamCount: 2, mode: "classic", firstTeam: "blue" }, "DUEL");
+  assert.deepEqual(config.activeTeams, ["red", "blue"]);
+  assert.deepEqual(config.turnOrder, ["blue", "red"]);
+  assert.equal(config.teamCounts.blue, 9);
+  assert.equal(config.teamCounts.red, 8);
+  assert.deepEqual(teamsForCount(3), ["red", "yellow", "blue"]);
+});
+
+test("custom rules produce a deterministic dynamic grid", () => {
+  const custom = createGameConfig({
+    teamCount: 3,
+    mode: "custom",
+    gridSize: 4,
+    firstTeam: "yellow",
+    teamCounts: { red: 3, yellow: 5, blue: 4 },
+    whiteCount: 3,
+    blackCount: 1
+  }, "CUSTOM");
+  const game = buildGame("CUSTOM", 2, 1, custom);
+  assert.equal(game.cards.length, 16);
+  assert.deepEqual(game.cards.map((card) => card.coordinate), Array.from({ length: 16 }, (_, index) => String(index + 1)));
+  assert.deepEqual(roleCounts(game.cards), { red: 3, yellow: 5, blue: 4, black: 1, white: 3 });
+  assert.deepEqual(game, buildGame("CUSTOM", 2, 1, custom));
+});
+
+test("custom rules reject allocations that do not fill the grid", () => {
+  assert.throws(() => createGameConfig({
+    teamCount: 3,
+    mode: "custom",
+    gridSize: 4,
+    teamCounts: { red: 4, yellow: 4, blue: 4 },
+    whiteCount: 2,
+    blackCount: 1
+  }, "INVALID"), /不一致/);
+});
+
+test("configured turn order starts from the seeded first team", () => {
+  const order = ["blue", "red"];
+  assert.deepEqual(nextActiveTurn("blue", order, 1, order), { team: "red", round: 1 });
+  assert.deepEqual(nextActiveTurn("red", order, 1, order), { team: "blue", round: 2 });
 });

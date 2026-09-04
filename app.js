@@ -1,13 +1,19 @@
 import {
+  GAME_MODES,
+  MODE_NAMES,
   ROLE_NAMES,
   TEAM_ORDER,
   TEAMS,
   answerTimeWithCarry,
   buildGame,
   calculatePlacements,
+  configSignature,
+  createGameConfig,
   createGameCode,
+  getGamePreset,
   nextActiveTurn,
-  normalizeSeed
+  normalizeSeed,
+  teamsForCount
 } from "./game-core.js";
 
 const view = document.body.dataset.view;
@@ -90,27 +96,71 @@ function setRevisionInUrl(url, name, revision) {
   }
 }
 
-function setGameInUrl(seed, imageRevision = 0, layoutRevision = 0) {
+function gameConfigFromUrl(seed) {
+  const params = new URLSearchParams(window.location.search);
+  const requestedTeamCount = Number(params.get("teams"));
+  const teamCount = [2, 3, 4].includes(requestedTeamCount) ? requestedTeamCount : 4;
+  const activeTeams = teamsForCount(teamCount);
+  const teamCounts = {};
+  for (const team of activeTeams) {
+    if (params.has(team)) teamCounts[team] = Number(params.get(team));
+  }
+  try {
+    return createGameConfig({
+      teamCount,
+      mode: params.get("mode") || "classic",
+      gridSize: params.get("size"),
+      teamCounts,
+      whiteCount: params.get("white"),
+      blackCount: params.get("black"),
+      firstTeam: params.get("first") || "random"
+    }, seed);
+  } catch {
+    return createGameConfig({ teamCount, mode: "classic", firstTeam: params.get("first") || "random" }, seed);
+  }
+}
+
+function writeGameConfigToUrl(url, config) {
+  url.searchParams.set("teams", String(config.teamCount));
+  url.searchParams.set("mode", config.mode);
+  url.searchParams.set("size", String(config.gridSize));
+  url.searchParams.set("white", String(config.whiteCount));
+  url.searchParams.set("black", String(config.blackCount));
+  url.searchParams.set("first", config.firstTeam);
+  for (const team of TEAM_ORDER) {
+    if (config.activeTeams.includes(team)) url.searchParams.set(team, String(config.teamCounts[team]));
+    else url.searchParams.delete(team);
+  }
+}
+
+function gameModeSummary(config) {
+  return config.teamCount + " 队 · " + MODE_NAMES[config.mode] + " · " + config.gridSize + "×" + config.gridSize;
+}
+
+function setGameInUrl(seed, imageRevision = 0, layoutRevision = 0, config) {
   const url = new URL(window.location.href);
   url.searchParams.set("game", seed);
   setRevisionInUrl(url, "deck", imageRevision);
   setRevisionInUrl(url, "layout", layoutRevision);
+  writeGameConfigToUrl(url, config);
   window.history.replaceState({}, "", url);
 }
 
-function playUrl(seed, imageRevision = 0, layoutRevision = 0) {
+function playUrl(seed, imageRevision = 0, layoutRevision = 0, config = createGameConfig({}, seed)) {
   const url = new URL("./play.html", window.location.href);
   url.searchParams.set("game", seed);
   setRevisionInUrl(url, "deck", imageRevision);
   setRevisionInUrl(url, "layout", layoutRevision);
+  writeGameConfigToUrl(url, config);
   return url;
 }
 
-function masterUrl(seed, imageRevision = 0, layoutRevision = 0) {
+function masterUrl(seed, imageRevision = 0, layoutRevision = 0, config = createGameConfig({}, seed)) {
   const url = new URL("./master.html", window.location.href);
   url.searchParams.set("game", seed);
   setRevisionInUrl(url, "deck", imageRevision);
   setRevisionInUrl(url, "layout", layoutRevision);
+  writeGameConfigToUrl(url, config);
   return url;
 }
 
@@ -157,18 +207,145 @@ function masterPictureCard(card) {
 }
 
 function setupStart() {
-  function startNewGame() {
-    const seed = createGameCode();
-    window.location.href = playUrl(seed).href;
-    return { gameCode: seed };
+  const form = document.querySelector("#game-setup");
+  const startButton = document.querySelector("#start-game");
+  const firstTeamSelect = document.querySelector("#custom-first-team");
+  const teamCountsContainer = document.querySelector("#custom-team-counts");
+  const gridSizeInput = document.querySelector("#custom-grid-size");
+  const whiteCountInput = document.querySelector("#custom-white-count");
+  const blackCountInput = document.querySelector("#custom-black-count");
+  const allocationStatus = document.querySelector("#allocation-status");
+  let isCustom = false;
+
+  function selectedTeamCount() {
+    return Number(form.elements["team-count"].value);
   }
 
-  document.querySelector("#start-game").addEventListener("click", startNewGame);
+  function selectedMode() {
+    return form.elements["game-mode"].value;
+  }
+
+  function presetSummary(teamCount, mode) {
+    const preset = getGamePreset(teamCount, mode);
+    const colors = teamCount === 2
+      ? "先手 " + preset.firstCount + " / 后手 " + preset.secondCount
+      : "每队 " + preset.perTeamCount;
+    return preset.gridSize + "×" + preset.gridSize + " · " + colors + " · 白 " + preset.whiteCount + " · 黑 " + preset.blackCount;
+  }
+
+  function updateModeSummaries() {
+    const teamCount = selectedTeamCount();
+    for (const mode of GAME_MODES) {
+      document.querySelector('[data-mode-summary="' + mode + '"]').textContent = presetSummary(teamCount, mode);
+    }
+  }
+
+  function rebuildFirstTeamOptions() {
+    const activeTeams = teamsForCount(selectedTeamCount());
+    const previous = firstTeamSelect.value;
+    firstTeamSelect.replaceChildren(new Option("按局号随机", "random"));
+    for (const team of activeTeams) firstTeamSelect.add(new Option(TEAMS[team].name, team));
+    firstTeamSelect.value = activeTeams.includes(previous) ? previous : "random";
+  }
+
+  function countInput(label, value, key) {
+    const field = document.createElement("label");
+    field.className = "team-count-setting";
+    field.innerHTML = '<span>' + label + '</span><input type="number" min="1" max="64" step="1" value="' + value + '" required data-count-key="' + key + '" />';
+    return field;
+  }
+
+  function rebuildTeamCountInputs(preset) {
+    const teamCount = selectedTeamCount();
+    if (teamCount === 2) {
+      teamCountsContainer.replaceChildren(
+        countInput("先手颜色牌", preset.firstCount, "first"),
+        countInput("后手颜色牌", preset.secondCount, "second")
+      );
+      return;
+    }
+    teamCountsContainer.replaceChildren(...teamsForCount(teamCount).map((team) => (
+      countInput(TEAMS[team].name + "颜色牌", preset.perTeamCount, team)
+    )));
+  }
+
+  function validateAllocation() {
+    const gridSize = Number(gridSizeInput.value);
+    const target = gridSize * gridSize;
+    const colorTotal = [...teamCountsContainer.querySelectorAll("input")]
+      .reduce((sum, input) => sum + (Number(input.value) || 0), 0);
+    const assigned = colorTotal + (Number(whiteCountInput.value) || 0) + (Number(blackCountInput.value) || 0);
+    const valid = Number.isInteger(gridSize) && gridSize >= 3 && gridSize <= 8
+      && [...teamCountsContainer.querySelectorAll("input")].every((input) => Number(input.value) >= 1)
+      && Number(whiteCountInput.value) >= 0
+      && Number(blackCountInput.value) >= 0
+      && assigned === target;
+    allocationStatus.classList.toggle("is-valid", valid);
+    allocationStatus.textContent = valid
+      ? "✓ 已分配 " + assigned + " / " + target + " 张"
+      : "当前分配 " + assigned + " 张，需要刚好填满 " + target + " 个方格";
+    startButton.disabled = !valid;
+    return valid;
+  }
+
+  function applySelectedPreset() {
+    const preset = getGamePreset(selectedTeamCount(), selectedMode());
+    gridSizeInput.value = String(preset.gridSize);
+    whiteCountInput.value = String(preset.whiteCount);
+    blackCountInput.value = String(preset.blackCount);
+    rebuildTeamCountInputs(preset);
+    isCustom = false;
+    validateAllocation();
+  }
+
+  function readConfigForSeed(seed) {
+    const teamCount = selectedTeamCount();
+    const countValues = Object.fromEntries([...teamCountsContainer.querySelectorAll("input")]
+      .map((input) => [input.dataset.countKey, Number(input.value)]));
+    return createGameConfig({
+      teamCount,
+      mode: isCustom ? "custom" : selectedMode(),
+      gridSize: Number(gridSizeInput.value),
+      firstTeam: firstTeamSelect.value,
+      firstCount: countValues.first,
+      secondCount: countValues.second,
+      teamCounts: Object.fromEntries(teamsForCount(teamCount).map((team) => [team, countValues[team]])),
+      whiteCount: Number(whiteCountInput.value),
+      blackCount: Number(blackCountInput.value)
+    }, seed);
+  }
+
+  function startNewGame() {
+    if (!validateAllocation()) throw new Error("颜色牌数量还没有填满方格。");
+    const seed = createGameCode();
+    const config = readConfigForSeed(seed);
+    window.location.href = playUrl(seed, 0, 0, config).href;
+    return { gameCode: seed, config };
+  }
+
+  form.elements["team-count"].forEach((input) => input.addEventListener("change", () => {
+    updateModeSummaries();
+    rebuildFirstTeamOptions();
+    applySelectedPreset();
+  }));
+  form.elements["game-mode"].forEach((input) => input.addEventListener("change", applySelectedPreset));
+  document.querySelector("#detailed-settings").addEventListener("input", (event) => {
+    if (event.target !== firstTeamSelect) isCustom = true;
+    validateAllocation();
+  });
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    startNewGame();
+  });
+
+  updateModeSummaries();
+  rebuildFirstTeamOptions();
+  applySelectedPreset();
 
   registerWebTool({
     name: "start_new_codenames_game",
     title: "开始新游戏",
-    description: "生成新的局号并进入 25 张图片的主持人题板。",
+    description: "按开始页当前选择生成局号，并进入 2 至 4 队的主持人题板。",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
     annotations: { readOnlyHint: false, untrustedContentHint: false },
     execute(input) {
@@ -182,16 +359,35 @@ function setupMaster() {
   let seed = getSeedFromUrl() || createGameCode();
   const imageRevision = getImageRevisionFromUrl() ?? 0;
   const layoutRevision = getLayoutRevisionFromUrl() ?? 0;
-  const game = buildGame(seed, imageRevision, layoutRevision);
+  const requestedConfig = gameConfigFromUrl(seed);
+  const game = buildGame(seed, imageRevision, layoutRevision, requestedConfig);
+  const config = game.config;
 
   const board = document.querySelector("#master-board");
   const codeLabel = document.querySelector("#master-code-label");
   const playLink = document.querySelector("#open-play");
+  const summary = document.querySelector("#master-game-summary");
+  const legend = document.querySelector("#master-legend");
 
-  setGameInUrl(seed, imageRevision, layoutRevision);
+  setGameInUrl(seed, imageRevision, layoutRevision, config);
   codeLabel.textContent = seed;
-  playLink.href = playUrl(seed, imageRevision, layoutRevision).href;
+  playLink.href = playUrl(seed, imageRevision, layoutRevision, config).href;
+  summary.textContent = gameModeSummary(config) + " · " + TEAMS[config.firstTeam].name + "先手";
+  board.style.setProperty("--grid-size", String(config.gridSize));
+  board.dataset.gridSize = String(config.gridSize);
+  board.setAttribute("aria-label", config.gridSize + "乘" + config.gridSize + "队长答案卡");
   board.replaceChildren(...game.cards.map(masterPictureCard));
+  const legendRoles = [
+    ...config.activeTeams.map((team) => [team, TEAMS[team].name, config.teamCounts[team]]),
+    ["black", "黑色", config.blackCount],
+    ["white", "白色", config.whiteCount]
+  ];
+  legend.replaceChildren(...legendRoles.filter(([, , count]) => count > 0).map(([role, name, count]) => {
+    const item = document.createElement("span");
+    item.innerHTML = '<i class="dot ' + role + '"></i>' + name + " " + count;
+    if (role === config.firstTeam) item.append(" · 先手");
+    return item;
+  }));
 }
 
 function setupPlay() {
@@ -201,12 +397,15 @@ function setupPlay() {
   let seed = getSeedFromUrl() || createGameCode();
   let imageRevision = getImageRevisionFromUrl() ?? 0;
   let layoutRevision = getLayoutRevisionFromUrl() ?? 0;
-  let game = buildGame(seed, imageRevision, layoutRevision);
+  const requestedConfig = gameConfigFromUrl(seed);
+  let game = buildGame(seed, imageRevision, layoutRevision, requestedConfig);
+  const config = game.config;
   let revealed = new Set();
   let currentTeam = null;
   let round = 0;
   let eliminatedTeams = {};
   let completionRounds = {};
+  let winnerTeam = null;
   let timerPhase = "prep";
   let timerRemaining = timerSettings.prep;
   let timerRunning = false;
@@ -229,6 +428,7 @@ function setupPlay() {
   const nextTeamButton = document.querySelector("#next-team");
   const fullscreenButton = document.querySelector("#fullscreen");
   const gameCodeLabel = document.querySelector("#game-code-label");
+  const gameModeLabel = document.querySelector("#game-mode-label");
   const copyMasterButton = document.querySelector("#copy-master-link");
   const copyMasterFeedback = document.querySelector("#copy-master-feedback");
   const gameLayout = document.querySelector(".game-layout");
@@ -245,17 +445,15 @@ function setupPlay() {
   const dismissElimination = document.querySelector("#dismiss-elimination");
   const viewResultsButton = document.querySelector("#view-results");
   const finalResults = document.querySelector("#final-results");
+  const finalResultsTitle = document.querySelector("#final-results-title");
+  const finalResultsCopy = document.querySelector("#final-results-copy");
   const rankingList = document.querySelector("#ranking-list");
   const dismissResults = document.querySelector("#dismiss-results");
   const celebrationCanvas = document.querySelector("#celebration-canvas");
   let celebrationFrame = null;
 
   function stateKey() {
-    return "codenames-four-teams:" + seed + ":layout:" + layoutRevision;
-  }
-
-  function legacyStateKey() {
-    return "codenames-four-teams:" + seed;
+    return "codenames-pictures:" + seed + ":" + configSignature(config) + ":layout:" + layoutRevision;
   }
 
   function loadTimerSettings() {
@@ -279,12 +477,13 @@ function setupPlay() {
 
   function saveState() {
     localStorage.setItem(stateKey(), JSON.stringify({
-      version: 3,
+      version: 4,
       revealed: [...revealed],
       currentTeam,
       round,
       eliminatedTeams,
       completionRounds,
+      winnerTeam,
       imageRevision,
       layoutRevision
     }));
@@ -292,7 +491,7 @@ function setupPlay() {
 
   function restoreTeamRounds(value) {
     const restored = {};
-    for (const team of TEAM_ORDER) {
+    for (const team of config.activeTeams) {
       if (Number.isInteger(value?.[team]) && value[team] >= 1) restored[team] = value[team];
     }
     return restored;
@@ -304,16 +503,18 @@ function setupPlay() {
     round = 0;
     eliminatedTeams = {};
     completionRounds = {};
+    winnerTeam = null;
     imageRevision = 0;
     try {
-      const stored = JSON.parse(localStorage.getItem(stateKey()) || (layoutRevision === 0 ? localStorage.getItem(legacyStateKey()) : "") || "null");
-      if (!stored || ![2, 3].includes(stored.version)) return false;
+      const stored = JSON.parse(localStorage.getItem(stateKey()) || "null");
+      if (!stored || stored.version !== 4) return false;
       if (Array.isArray(stored.revealed)) {
-        revealed = new Set(stored.revealed.filter((index) => Number.isInteger(index) && index >= 0 && index < 25));
+        revealed = new Set(stored.revealed.filter((index) => Number.isInteger(index) && index >= 0 && index < config.cardCount));
       }
       completionRounds = restoreTeamRounds(stored.completionRounds);
       eliminatedTeams = restoreTeamRounds(stored.eliminatedTeams);
-      if (TEAM_ORDER.includes(stored.currentTeam)) currentTeam = stored.currentTeam;
+      if (config.activeTeams.includes(stored.currentTeam)) currentTeam = stored.currentTeam;
+      if (config.teamCount === 2 && config.activeTeams.includes(stored.winnerTeam)) winnerTeam = stored.winnerTeam;
       if (Number.isInteger(stored.round) && stored.round >= 0) round = stored.round;
       if (Number.isInteger(stored.imageRevision) && stored.imageRevision >= 0) imageRevision = stored.imageRevision;
       return true;
@@ -324,15 +525,15 @@ function setupPlay() {
   }
 
   function isActive(team) {
-    return TEAM_ORDER.includes(team) && !eliminatedTeams[team] && !completionRounds[team];
+    return config.activeTeams.includes(team) && !eliminatedTeams[team] && !completionRounds[team];
   }
 
   function activeTeams() {
-    return TEAM_ORDER.filter(isActive);
+    return config.turnOrder.filter(isActive);
   }
 
   function gameIsFinished() {
-    return activeTeams().length === 0;
+    return Boolean(winnerTeam) || activeTeams().length === 0;
   }
 
   function canReveal() {
@@ -384,15 +585,18 @@ function setupPlay() {
   }
 
   function renderTeams() {
-    const placements = calculatePlacements(completionRounds);
-    teamSwitcher.replaceChildren(...TEAM_ORDER.map((team) => {
+    const placements = calculatePlacements(completionRounds, config.activeTeams);
+    teamSwitcher.replaceChildren(...config.activeTeams.map((team) => {
       const button = document.createElement("button");
       const remaining = remainingFor(team);
       const isEliminated = Boolean(eliminatedTeams[team]);
       const isComplete = Boolean(completionRounds[team]);
       let status = "剩余 " + remaining + " 张";
       let badge = String(remaining);
-      if (isEliminated) {
+      if (winnerTeam) {
+        status = team === winnerTeam ? "本局获胜" : (isEliminated ? "触发黑色" : "本局落败");
+        badge = team === winnerTeam ? "胜利" : "失败";
+      } else if (isEliminated) {
         status = "第 " + eliminatedTeams[team] + " 轮出局";
         badge = "出局";
       } else if (isComplete) {
@@ -424,14 +628,16 @@ function setupPlay() {
     currentTeamName.textContent = preparing
       ? "全体队长准备"
       : finished
-        ? "本局已结束"
+        ? (winnerTeam ? TEAMS[winnerTeam].name + "胜利" : "本局已结束")
         : TEAMS[currentTeam].name;
     roundLabel.textContent = preparing ? "准备阶段" : finished ? "最终结果" : "第 " + round + " 轮";
 
     if (preparing) {
-      phaseInstruction.textContent = "四位队长一起查看答案；队友只看左侧图片。";
+      phaseInstruction.textContent = config.teamCount + " 位队长一起查看答案；队友只看左侧图片。";
     } else if (finished) {
-      phaseInstruction.textContent = "所有队伍均已完成或出局，名次已记录。";
+      phaseInstruction.textContent = winnerTeam
+        ? TEAMS[winnerTeam].name + "率先找齐全部图片，本局获胜。"
+        : "所有队伍均已完成或出局，名次已记录。";
     } else if (timerPhase === "clue") {
       phaseInstruction.textContent = TEAMS[currentTeam].name + "队长用“一个词 + 一个数字”给提示；说完即可开始答题。";
     } else if (timerRemaining === 0) {
@@ -447,6 +653,7 @@ function setupPlay() {
     nextTeamButton.hidden = finished;
     viewResultsButton.hidden = !finished;
     gameCodeLabel.textContent = seed;
+    gameModeLabel.textContent = gameModeSummary(config) + " · " + TEAMS[config.firstTeam].short + "先";
     renderTeams();
     updateBoardAvailability();
   }
@@ -490,7 +697,7 @@ function setupPlay() {
   }
 
   function startFirstTurn() {
-    const firstTeam = TEAM_ORDER.find(isActive);
+    const firstTeam = config.turnOrder.find(isActive);
     if (!firstTeam) {
       currentTeam = null;
       renderStatus();
@@ -557,16 +764,22 @@ function setupPlay() {
   }
 
   function findNextActive(fromTeam) {
-    return nextActiveTurn(fromTeam, activeTeams(), round);
+    return nextActiveTurn(fromTeam, activeTeams(), round, config.turnOrder);
   }
 
   function renderFinalRanking() {
-    const placements = calculatePlacements(completionRounds);
-    const orderedTeams = [...TEAM_ORDER].sort((first, second) => {
+    const placements = calculatePlacements(completionRounds, config.activeTeams);
+    const orderedTeams = [...config.activeTeams].sort((first, second) => {
+      if (winnerTeam) return (first === winnerTeam ? -1 : 1) - (second === winnerTeam ? -1 : 1);
       const firstPlace = placements[first] ?? 99;
       const secondPlace = placements[second] ?? 99;
-      return firstPlace - secondPlace || TEAM_ORDER.indexOf(first) - TEAM_ORDER.indexOf(second);
+      return firstPlace - secondPlace || config.turnOrder.indexOf(first) - config.turnOrder.indexOf(second);
     });
+
+    finalResultsTitle.textContent = winnerTeam ? TEAMS[winnerTeam].name + "胜利！" : "本局排名";
+    finalResultsCopy.textContent = winnerTeam
+      ? "两队对抗已决出胜负，所有答案已经显示在题板上。"
+      : "所有答案已经显示在题板上。";
 
     rankingList.replaceChildren(...orderedTeams.map((team) => {
       const row = document.createElement("div");
@@ -576,15 +789,17 @@ function setupPlay() {
 
       const badge = document.createElement("strong");
       badge.className = "ranking-place";
-      badge.textContent = placement ? ordinal(placement) : "出局";
+      badge.textContent = winnerTeam ? (team === winnerTeam ? "胜利" : "失败") : (placement ? ordinal(placement) : "出局");
 
       const copy = document.createElement("span");
       const name = document.createElement("b");
       name.textContent = TEAMS[team].name;
       const detail = document.createElement("small");
-      detail.textContent = placement
-        ? "第 " + completionRounds[team] + " 轮完成"
-        : "第 " + eliminatedRound + " 轮触发黑色";
+      detail.textContent = winnerTeam
+        ? (team === winnerTeam
+          ? (completionRounds[team] ? "第 " + completionRounds[team] + " 轮率先完成" : "对手触发黑色")
+          : (eliminatedRound ? "第 " + eliminatedRound + " 轮触发黑色" : "对手率先完成"))
+        : (placement ? "第 " + completionRounds[team] + " 轮完成" : "第 " + eliminatedRound + " 轮触发黑色");
       copy.append(name, detail);
       row.append(badge, copy);
       return row;
@@ -660,13 +875,16 @@ function setupPlay() {
     viewResultsButton.focus();
   }
 
-  function finishGame(reason) {
+  function finishGame(reason, winner = null) {
+    if (winner && config.activeTeams.includes(winner)) winnerTeam = winner;
     currentTeam = null;
     stopTimer(false);
     timerPhase = "guess";
     timerRemaining = 0;
     revealed = new Set(game.cards.map((card) => card.index));
-    message.textContent = reason + " 所有队伍均已完成或出局，本局结束。";
+    message.textContent = winnerTeam
+      ? reason + " " + TEAMS[winnerTeam].name + "赢得本局。"
+      : reason + " 所有队伍均已完成或出局，本局结束。";
     saveState();
     renderTimer();
     renderBoard();
@@ -701,14 +919,14 @@ function setupPlay() {
   }
 
   function recordCompletion(team) {
-    if (!TEAM_ORDER.includes(team) || completionRounds[team] || remainingFor(team) !== 0) return false;
+    if (!config.activeTeams.includes(team) || completionRounds[team] || remainingFor(team) !== 0) return false;
     completionRounds[team] = Math.max(1, round);
     return true;
   }
 
   function completionMessage(team) {
-    const placement = calculatePlacements(completionRounds)[team];
-    return TEAMS[team].name + "已在第 " + completionRounds[team] + " 轮找齐 5 张，当前排名 " + ordinal(placement) + "。";
+    const placement = calculatePlacements(completionRounds, config.activeTeams)[team];
+    return TEAMS[team].name + "已在第 " + completionRounds[team] + " 轮找齐 " + config.teamCounts[team] + " 张，当前排名 " + ordinal(placement) + "。";
   }
 
   function revealCard(card) {
@@ -717,11 +935,16 @@ function setupPlay() {
 
     const guessingTeam = currentTeam;
     revealed.add(card.index);
-    const targetCompleted = TEAM_ORDER.includes(card.role) && recordCompletion(card.role);
+    const targetCompleted = config.activeTeams.includes(card.role) && recordCompletion(card.role);
 
     if (card.role === "black") {
       eliminatedTeams[guessingTeam] = Math.max(1, round);
       stopTimer(false);
+      if (config.teamCount === 2) {
+        const opponent = config.activeTeams.find((team) => team !== guessingTeam);
+        finishGame(TEAMS[guessingTeam].name + "翻到黑色并出局。", opponent);
+        return;
+      }
       advanceTeam(TEAMS[guessingTeam].name + "翻到黑色并出局。", false);
       if (!gameIsFinished()) {
         message.textContent = TEAMS[guessingTeam].name + "翻到黑色并出局。下一队是" + TEAMS[currentTeam].name + "；关闭提示后开始 " + formatTime(timerSettings.clue) + " 队长思考。";
@@ -731,12 +954,20 @@ function setupPlay() {
       }
     } else if (card.role === guessingTeam) {
       if (targetCompleted) {
+        if (config.teamCount === 2) {
+          finishGame(TEAMS[guessingTeam].name + "率先找齐全部图片。", guessingTeam);
+          return;
+        }
         const completedCopy = completionMessage(guessingTeam);
         advanceTeam(completedCopy, true);
       } else {
         message.textContent = "答对！" + TEAMS[guessingTeam].name + "可以继续选择。";
       }
-    } else if (TEAM_ORDER.includes(card.role)) {
+    } else if (config.activeTeams.includes(card.role)) {
+      if (targetCompleted && config.teamCount === 2) {
+        finishGame("这次选择帮助" + TEAMS[card.role].name + "找齐了全部图片。", card.role);
+        return;
+      }
       const helpCopy = targetCompleted
         ? "还帮助" + TEAMS[card.role].name + "完成了全部图片。"
         : "已替对方翻面。";
@@ -752,26 +983,27 @@ function setupPlay() {
 
   function refreshImages() {
     imageRevision += 1;
-    game = buildGame(seed, imageRevision, layoutRevision);
-    setGameInUrl(seed, imageRevision, layoutRevision);
+    game = buildGame(seed, imageRevision, layoutRevision, config);
+    setGameInUrl(seed, imageRevision, layoutRevision, config);
     saveState();
     renderBoard();
     renderStatus();
-    message.textContent = "表面图片已刷新；25 个位置下方的答案颜色完全不变。";
+    message.textContent = "表面图片已刷新；" + config.cardCount + " 个位置下方的答案颜色完全不变。";
   }
 
   function refreshLayout() {
     layoutRevision += 1;
-    game = buildGame(seed, imageRevision, layoutRevision);
+    game = buildGame(seed, imageRevision, layoutRevision, config);
     revealed = new Set();
     currentTeam = null;
     round = 0;
     eliminatedTeams = {};
     completionRounds = {};
+    winnerTeam = null;
     eliminationNotice.hidden = true;
     finalResults.hidden = true;
     stopCelebration();
-    setGameInUrl(seed, imageRevision, layoutRevision);
+    setGameInUrl(seed, imageRevision, layoutRevision, config);
     configureTimer("prep", timerSettings.prep, false);
     saveState();
     renderBoard();
@@ -780,7 +1012,7 @@ function setupPlay() {
   }
 
   async function copyMasterLink() {
-    const url = masterUrl(seed, imageRevision, layoutRevision).href;
+    const url = masterUrl(seed, imageRevision, layoutRevision, config).href;
     try {
       await navigator.clipboard.writeText(url);
       copyMasterFeedback.textContent = "队长答案链接已复制";
@@ -801,6 +1033,7 @@ function setupPlay() {
     round = 0;
     eliminatedTeams = {};
     completionRounds = {};
+    winnerTeam = null;
     eliminationNotice.hidden = true;
     finalResults.hidden = true;
     stopCelebration();
@@ -919,10 +1152,14 @@ function setupPlay() {
     if (Number.isInteger(requestedImageRevision) && requestedImageRevision >= 0) {
       imageRevision = requestedImageRevision;
     }
-    game = buildGame(seed, imageRevision, layoutRevision);
+    game = buildGame(seed, imageRevision, layoutRevision, config);
+    board.style.setProperty("--grid-size", String(config.gridSize));
+    board.dataset.gridSize = String(config.gridSize);
+    board.setAttribute("aria-label", config.gridSize + "乘" + config.gridSize + "图片题板");
+    teamSwitcher.setAttribute("aria-label", config.teamCount + "队状态与当前队伍");
     if (currentTeam && !isActive(currentTeam)) currentTeam = null;
     if (!currentTeam && round > 0 && !gameIsFinished()) currentTeam = activeTeams()[0];
-    setGameInUrl(seed, imageRevision, layoutRevision);
+    setGameInUrl(seed, imageRevision, layoutRevision, config);
     eliminationNotice.hidden = true;
     if (gameIsFinished()) {
       currentTeam = null;
@@ -1018,17 +1255,17 @@ function setupPlay() {
   registerWebTool({
     name: "reveal_codenames_picture",
     title: "翻开图片",
-    description: "按题板上的 1 至 25 编号翻开图片，并应用继续、换队、帮助对方或当前队出局的规则。",
+    description: "按题板编号翻开图片，并应用继续、换队、帮助对方或当前队出局的规则。",
     inputSchema: {
       type: "object",
-      properties: { number: { type: "integer", minimum: 1, maximum: 25 } },
+      properties: { number: { type: "integer", minimum: 1, maximum: config.cardCount } },
       required: ["number"],
       additionalProperties: false
     },
     annotations: { readOnlyHint: false, untrustedContentHint: false },
     execute(input) {
-      if (!Number.isInteger(input?.number) || input.number < 1 || input.number > 25) {
-        throw new Error("图片编号必须是 1 到 25 的整数。");
+      if (!Number.isInteger(input?.number) || input.number < 1 || input.number > config.cardCount) {
+        throw new Error("图片编号必须是 1 到 " + config.cardCount + " 的整数。");
       }
       const card = game.cards[input.number - 1];
       const previousTeam = currentTeam;
@@ -1040,7 +1277,7 @@ function setupPlay() {
         currentTeam,
         round,
         eliminated: Boolean(eliminatedTeams[previousTeam]),
-        completedTeam: TEAM_ORDER.includes(card.role) && Boolean(completionRounds[card.role]) ? card.role : null
+        completedTeam: config.activeTeams.includes(card.role) && Boolean(completionRounds[card.role]) ? card.role : null
       };
     }
   });
@@ -1051,13 +1288,13 @@ function setupPlay() {
     description: "由主持人把当前回合切换到仍在比赛中的指定队伍，并启动已设置的队长思考计时。",
     inputSchema: {
       type: "object",
-      properties: { team: { type: "string", enum: TEAM_ORDER } },
+      properties: { team: { type: "string", enum: config.activeTeams } },
       required: ["team"],
       additionalProperties: false
     },
     annotations: { readOnlyHint: false, untrustedContentHint: false },
     execute(input) {
-      if (!TEAM_ORDER.includes(input?.team)) throw new Error("队伍必须是 red、yellow、blue 或 green。");
+      if (!config.activeTeams.includes(input?.team)) throw new Error("该队不在本局配置中。");
       if (!isActive(input.team)) throw new Error("该队已经完成或出局，不能再获得回合。");
       selectTeam(input.team);
       return { currentTeam, round, timerPhase, timerRemaining };
@@ -1094,7 +1331,7 @@ function setupPlay() {
   registerWebTool({
     name: "refresh_codenames_pictures",
     title: "刷新表面图片",
-    description: "更换全部 25 张表面图片，同时保持每个位置下方的答案颜色不变。",
+    description: "更换全部表面图片，同时保持每个位置下方的答案颜色不变。",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
     annotations: { readOnlyHint: false, untrustedContentHint: false },
     execute(input) {
@@ -1108,7 +1345,7 @@ function setupPlay() {
   registerWebTool({
     name: "refresh_codenames_layout",
     title: "刷新颜色分布",
-    description: "保持当前 25 张图片不变，生成新的隐藏颜色分布并重置本局进度。",
+    description: "保持当前图片不变，生成新的隐藏颜色分布并重置本局进度。",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
     annotations: { readOnlyHint: false, untrustedContentHint: false },
     execute(input) {
@@ -1120,7 +1357,7 @@ function setupPlay() {
         previousRevision,
         layoutRevision,
         imagesUnchanged: true,
-        masterCardUrl: masterUrl(seed, imageRevision, layoutRevision).href
+        masterCardUrl: masterUrl(seed, imageRevision, layoutRevision, config).href
       };
     }
   });
@@ -1128,7 +1365,7 @@ function setupPlay() {
   registerWebTool({
     name: "skip_codenames_timer",
     title: "跳过当前倒计时",
-    description: "立即结束当前倒计时：准备阶段进入红队，队长思考进入答题，答题阶段进入下一队。",
+    description: "立即结束当前倒计时：准备阶段进入本局先手队，队长思考进入答题，答题阶段进入下一队。",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
     annotations: { readOnlyHint: false, untrustedContentHint: false },
     execute(input) {

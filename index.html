@@ -4,8 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#07111f" />
-    <meta name="description" content="四队现场版代号图像游戏" />
-    <title>代号：图像 · 四队现场版</title>
+    <meta name="description" content="2 至 4 队现场版代号图像游戏" />
+    <title>Codenames: Pictures · 现场版</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body data-view="start">
@@ -14,15 +14,61 @@
         <p class="eyebrow">CODENAMES · PICTURES</p>
         <div class="team-spectrum" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
         <h1 id="start-title">代号：图像</h1>
-        <p class="start-lede">四队现场对战。每队由一位队长查看答案，其余队员根据“一个词 + 一个数字”的提示猜图片。</p>
+        <p class="start-lede">现场对战版。每队由一位队长查看答案，其余队员根据“一个词 + 一个数字”的提示猜图片。</p>
 
-        <div class="start-rules" aria-label="游戏规则简介">
-          <p><strong>25 张图片</strong><span>红、黄、蓝、绿各 5 张，另有 1 张黑色和 4 张白色。</span></p>
-          <p><strong>猜中本队</strong><span>可以继续；翻到其他队、白色或主动结束时换下一队。</span></p>
-          <p><strong>翻到黑色</strong><span>当前队伍淘汰；同一轮完成的队伍并列。</span></p>
-        </div>
+        <form class="game-setup" id="game-setup">
+          <fieldset class="setup-group">
+            <legend><span>01</span> 几组玩家？</legend>
+            <div class="team-count-options" id="team-count-options">
+              <label><input type="radio" name="team-count" value="2" /><span><strong>2 组</strong><small>红蓝经典对抗</small></span></label>
+              <label><input type="radio" name="team-count" value="3" /><span><strong>3 组</strong><small>红黄蓝轮流行动</small></span></label>
+              <label><input type="radio" name="team-count" value="4" checked /><span><strong>4 组</strong><small>红黄蓝绿大乱斗</small></span></label>
+            </div>
+          </fieldset>
 
-        <button class="button button-primary start-button" id="start-game" type="button">开始游戏 <span aria-hidden="true">→</span></button>
+          <fieldset class="setup-group">
+            <legend><span>02</span> 选择节奏</legend>
+            <div class="mode-options" id="mode-options">
+              <label>
+                <input type="radio" name="game-mode" value="quick" />
+                <span><b>⚡</b><strong>快速</strong><small data-mode-summary="quick">—</small></span>
+              </label>
+              <label>
+                <input type="radio" name="game-mode" value="classic" checked />
+                <span><b>⚖️</b><strong>经典</strong><small data-mode-summary="classic">—</small></span>
+              </label>
+              <label>
+                <input type="radio" name="game-mode" value="slow" />
+                <span><b>🐢</b><strong>慢速</strong><small data-mode-summary="slow">—</small></span>
+              </label>
+            </div>
+          </fieldset>
+
+          <details class="advanced-settings" id="detailed-settings">
+            <summary><span>详细调整</span><small>自定义方格与牌数</small></summary>
+            <div class="advanced-settings-body">
+              <p class="advanced-note">修改任意数值后将切换为“自定义”模式。所有颜色牌数量必须刚好填满方格。</p>
+
+              <div class="advanced-grid">
+                <label><span>方格边长</span><input id="custom-grid-size" type="number" min="3" max="8" step="1" required /></label>
+                <label><span>先手队伍</span><select id="custom-first-team"><option value="random">按局号随机</option></select></label>
+                <label><span>白色中立</span><input id="custom-white-count" type="number" min="0" max="64" step="1" required /></label>
+                <label><span>黑色刺客</span><input id="custom-black-count" type="number" min="0" max="64" step="1" required /></label>
+              </div>
+
+              <div class="team-count-settings" id="custom-team-counts" aria-label="每队颜色牌数量"></div>
+              <p class="allocation-status" id="allocation-status" role="status"></p>
+            </div>
+          </details>
+
+          <div class="start-rules" aria-label="游戏规则简介">
+            <p><strong>同色继续</strong><span>猜中本队颜色可以继续；翻到其他队会帮助对方并立刻换队。</span></p>
+            <p><strong>白色换队</strong><span>白色立即结束当前回合；黑色会让当前队伍出局。</span></p>
+            <p><strong>胜负方式</strong><span>两队为即时胜负；三、四队按完成轮数采用并列跳位排名。</span></p>
+          </div>
+
+          <button class="button button-primary start-button" id="start-game" type="submit">开始游戏 <span aria-hidden="true">→</span></button>
+        </form>
       </section>
     </main>
     <script type="module" src="./app.js"></script>

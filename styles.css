@@ -2286,3 +2286,274 @@ body[data-view="start"] {
     animation: none;
   }
 }
+
+/* Configurable 2–4 team setup */
+
+body[data-view="start"] {
+  overflow: auto;
+}
+
+body[data-view="start"] .start-card {
+  width: min(72rem, 100%);
+  padding: clamp(2rem, 4vw, 3.6rem);
+}
+
+body[data-view="start"] .start-card h1 {
+  font-size: clamp(3.8rem, 8vw, 7rem);
+}
+
+.game-setup {
+  display: grid;
+  gap: 1.35rem;
+}
+
+.setup-group {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.setup-group legend {
+  margin-bottom: 0.7rem;
+  color: #f5f9fd;
+  font-size: 1.05rem;
+  font-weight: 900;
+}
+
+.setup-group legend span {
+  display: inline-grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  margin-right: 0.35rem;
+  border: 1px solid rgba(143, 194, 255, 0.32);
+  border-radius: 50%;
+  color: #8fc2ff;
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-size: 0.72rem;
+}
+
+.team-count-options,
+.mode-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.team-count-options label,
+.mode-options label {
+  position: relative;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.team-count-options input,
+.mode-options input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.team-count-options label > span,
+.mode-options label > span {
+  display: grid;
+  min-height: 5.4rem;
+  align-content: center;
+  padding: 0.9rem 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.035);
+  transition: border-color 150ms ease, background 150ms ease, transform 150ms ease;
+}
+
+.mode-options label > span {
+  min-height: 7.4rem;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.65rem;
+}
+
+.team-count-options label:hover > span,
+.mode-options label:hover > span {
+  transform: translateY(-2px);
+  border-color: rgba(143, 194, 255, 0.45);
+}
+
+.team-count-options input:checked + span,
+.mode-options input:checked + span {
+  border-color: #8fc2ff;
+  background: linear-gradient(145deg, rgba(59, 130, 246, 0.2), rgba(255, 255, 255, 0.055));
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.13), 0 0.8rem 2rem rgba(0, 0, 0, 0.2);
+}
+
+.team-count-options strong,
+.mode-options strong {
+  color: #f7fbff;
+  font-size: 1.15rem;
+}
+
+.team-count-options small,
+.mode-options small {
+  display: block;
+  margin-top: 0.25rem;
+  color: #9db0c4;
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.mode-options b {
+  grid-row: 1 / span 2;
+  font-size: 1.55rem;
+}
+
+.advanced-settings {
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 1rem;
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.advanced-settings summary {
+  display: flex;
+  min-height: 3.4rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  color: #ecf5ff;
+  cursor: pointer;
+  font-weight: 900;
+  list-style: none;
+}
+
+.advanced-settings summary::-webkit-details-marker { display: none; }
+.advanced-settings summary::after { content: "+"; color: #8fc2ff; font-size: 1.4rem; }
+.advanced-settings[open] summary::after { content: "−"; }
+
+.advanced-settings summary small {
+  margin-left: auto;
+  color: #8298ae;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.advanced-settings-body {
+  padding: 0 1rem 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.advanced-note {
+  margin: 0.85rem 0;
+  color: #9fb2c5;
+  font-size: 0.78rem;
+}
+
+.advanced-grid,
+.team-count-settings {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.team-count-settings {
+  margin-top: 0.65rem;
+}
+
+.advanced-grid label,
+.team-count-setting {
+  display: grid;
+  gap: 0.35rem;
+  color: #bac9d8;
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.advanced-grid input,
+.advanced-grid select,
+.team-count-setting input {
+  width: 100%;
+  min-width: 0;
+  height: 2.75rem;
+  padding: 0 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 0.65rem;
+  color: white;
+  background: #07111d;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.allocation-status {
+  margin: 0.75rem 0 0;
+  color: #ffb0b0;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.allocation-status.is-valid { color: #7ee2a8; }
+
+body[data-view="start"] .start-rules {
+  margin-block: 0.1rem 0.5rem;
+}
+
+body[data-view="start"] .start-button {
+  width: 100%;
+  min-height: 4.2rem;
+  font-size: 1.18rem;
+}
+
+.game-mode-pill {
+  display: inline-flex;
+  min-height: 2.5rem;
+  align-items: center;
+  padding: 0.45rem 0.72rem;
+  border: 1px solid rgba(143, 194, 255, 0.22);
+  border-radius: 0.7rem;
+  color: #d8eaff;
+  background: rgba(59, 130, 246, 0.08);
+  font-size: 0.76rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.answer-game-summary {
+  margin: 0.35rem 0 0;
+  color: #8fc2ff;
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.game-layout .game-board,
+.answer-board {
+  grid-template-columns: repeat(var(--grid-size, 5), minmax(0, 1fr));
+  grid-template-rows: repeat(var(--grid-size, 5), minmax(0, 1fr));
+  aspect-ratio: 1;
+}
+
+.game-layout .game-board[data-grid-size="6"],
+.answer-board[data-grid-size="6"] {
+  gap: clamp(0.38rem, 0.62vw, 0.62rem);
+}
+
+.game-layout .game-board[data-grid-size="4"],
+.answer-board[data-grid-size="4"] {
+  gap: clamp(0.75rem, 1.1vw, 1.15rem);
+}
+
+@media (max-width: 760px) {
+  .team-count-options,
+  .mode-options,
+  .advanced-grid,
+  .team-count-settings {
+    grid-template-columns: 1fr;
+  }
+
+  .team-count-options label > span,
+  .mode-options label > span {
+    min-height: 4.5rem;
+  }
+
+  .start-shell { place-items: start center; }
+  .game-mode-pill { width: 100%; justify-content: center; }
+}

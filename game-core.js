@@ -16,6 +16,33 @@ export const ROLE_NAMES = {
   white: "白色"
 };
 
+export const GAME_MODES = ["quick", "classic", "slow"];
+
+export const MODE_NAMES = {
+  quick: "快速",
+  classic: "经典",
+  slow: "慢速",
+  custom: "自定义"
+};
+
+const PRESETS = Object.freeze({
+  2: Object.freeze({
+    quick: Object.freeze({ gridSize: 4, firstCount: 6, secondCount: 5, whiteCount: 4, blackCount: 1 }),
+    classic: Object.freeze({ gridSize: 5, firstCount: 9, secondCount: 8, whiteCount: 7, blackCount: 1 }),
+    slow: Object.freeze({ gridSize: 6, firstCount: 12, secondCount: 11, whiteCount: 11, blackCount: 2 })
+  }),
+  3: Object.freeze({
+    quick: Object.freeze({ gridSize: 4, perTeamCount: 4, whiteCount: 3, blackCount: 1 }),
+    classic: Object.freeze({ gridSize: 5, perTeamCount: 6, whiteCount: 6, blackCount: 1 }),
+    slow: Object.freeze({ gridSize: 6, perTeamCount: 8, whiteCount: 10, blackCount: 2 })
+  }),
+  4: Object.freeze({
+    quick: Object.freeze({ gridSize: 5, perTeamCount: 4, whiteCount: 8, blackCount: 1 }),
+    classic: Object.freeze({ gridSize: 5, perTeamCount: 5, whiteCount: 4, blackCount: 1 }),
+    slow: Object.freeze({ gridSize: 6, perTeamCount: 7, whiteCount: 6, blackCount: 2 })
+  })
+});
+
 export function normalizeSeed(value) {
   return String(value || "")
     .toUpperCase()
@@ -60,33 +87,132 @@ function shuffle(items, random) {
   return copy;
 }
 
-export function buildGame(rawSeed, imageRevision = 0, layoutRevision = 0) {
+function integer(value, fallback) {
+  if (value === "" || value === null || value === undefined) return fallback;
+  const parsed = Number(value);
+  return Number.isInteger(parsed) ? parsed : fallback;
+}
+
+export function teamsForCount(rawTeamCount) {
+  const teamCount = integer(rawTeamCount, 4);
+  if (teamCount === 2) return ["red", "blue"];
+  if (teamCount === 3) return ["red", "yellow", "blue"];
+  if (teamCount === 4) return [...TEAM_ORDER];
+  throw new Error("队伍数量必须是 2、3 或 4。");
+}
+
+export function getGamePreset(rawTeamCount, rawMode = "classic") {
+  const teamCount = teamsForCount(rawTeamCount).length;
+  const mode = GAME_MODES.includes(rawMode) ? rawMode : "classic";
+  return { ...PRESETS[teamCount][mode] };
+}
+
+export function resolveFirstTeam(rawSeed, activeTeams, requestedTeam = "random") {
+  const safeTeams = activeTeams.filter((team) => TEAM_ORDER.includes(team));
+  if (safeTeams.length === 0) throw new Error("至少需要一个可用队伍。");
+  if (safeTeams.includes(requestedTeam)) return requestedTeam;
   const seed = normalizeSeed(rawSeed) || "MVP2026";
+  return safeTeams[hashString(seed + ":first") % safeTeams.length];
+}
+
+export function createGameConfig(options = {}, rawSeed = "MVP2026") {
+  const activeTeams = teamsForCount(options.teamCount);
+  const teamCount = activeTeams.length;
+  const requestedMode = GAME_MODES.includes(options.mode) ? options.mode : "custom";
+  const preset = getGamePreset(teamCount, requestedMode === "custom" ? "classic" : requestedMode);
+  const firstTeam = resolveFirstTeam(rawSeed, activeTeams, options.firstTeam);
+  const turnOrder = [
+    ...activeTeams.slice(activeTeams.indexOf(firstTeam)),
+    ...activeTeams.slice(0, activeTeams.indexOf(firstTeam))
+  ];
+
+  const suppliedCounts = options.teamCounts || {};
+  const hasEverySuppliedCount = activeTeams.every((team) => integer(suppliedCounts[team], -1) >= 1);
+  const teamCounts = {};
+  if (hasEverySuppliedCount) {
+    for (const team of activeTeams) teamCounts[team] = integer(suppliedCounts[team], 0);
+  } else if (teamCount === 2) {
+    teamCounts[firstTeam] = integer(options.firstCount, preset.firstCount);
+    teamCounts[activeTeams.find((team) => team !== firstTeam)] = integer(options.secondCount, preset.secondCount);
+  } else {
+    for (const team of activeTeams) teamCounts[team] = integer(options.perTeamCount, preset.perTeamCount);
+  }
+
+  const gridSize = integer(options.gridSize, preset.gridSize);
+  const whiteCount = integer(options.whiteCount, preset.whiteCount);
+  const blackCount = integer(options.blackCount, preset.blackCount);
+  if (gridSize < 3 || gridSize > 8) throw new Error("方格边长必须是 3 到 8。");
+  if (whiteCount < 0 || blackCount < 0) throw new Error("白牌和黑牌数量不能小于 0。");
+  if (Object.values(teamCounts).some((count) => count < 1)) throw new Error("每队至少需要 1 张颜色牌。");
+
+  const cardCount = gridSize * gridSize;
+  const assignedCount = Object.values(teamCounts).reduce((sum, count) => sum + count, 0) + whiteCount + blackCount;
+  if (assignedCount !== cardCount) {
+    throw new Error("颜色牌总数 " + assignedCount + " 与 " + gridSize + "×" + gridSize + " 方格不一致。");
+  }
+
+  return {
+    teamCount,
+    activeTeams,
+    mode: requestedMode,
+    gridSize,
+    cardCount,
+    teamCounts,
+    whiteCount,
+    blackCount,
+    firstTeam,
+    turnOrder
+  };
+}
+
+export function configSignature(config) {
+  return [
+    "t" + config.teamCount,
+    "m" + config.mode,
+    "g" + config.gridSize,
+    "f" + config.firstTeam,
+    ...config.activeTeams.map((team) => team[0] + config.teamCounts[team]),
+    "w" + config.whiteCount,
+    "k" + config.blackCount
+  ].join("-");
+}
+
+function usesLegacyRoleLayout(config) {
+  return config.teamCount === 4
+    && config.gridSize === 5
+    && config.whiteCount === 4
+    && config.blackCount === 1
+    && config.activeTeams.every((team) => config.teamCounts[team] === 5);
+}
+
+export function buildGame(rawSeed, imageRevision = 0, layoutRevision = 0, rawConfig = {}) {
+  const seed = normalizeSeed(rawSeed) || "MVP2026";
+  const config = createGameConfig(rawConfig, seed);
   const imageRandom = mulberry32(hashString(seed + ":images"));
   const safeLayoutRevision = Math.max(0, Number(layoutRevision) || 0);
-  const roleKey = safeLayoutRevision === 0 ? seed + ":roles" : seed + ":roles:" + safeLayoutRevision;
+  const roleBase = usesLegacyRoleLayout(config) ? seed + ":roles" : seed + ":roles:" + configSignature(config);
+  const roleKey = safeLayoutRevision === 0 ? roleBase : roleBase + ":" + safeLayoutRevision;
   const roleRandom = mulberry32(hashString(roleKey));
   const imagePool = Array.from({ length: 280 }, (_, index) => index);
   const roles = [
-    ...Array(5).fill("red"),
-    ...Array(5).fill("yellow"),
-    ...Array(5).fill("blue"),
-    ...Array(5).fill("green"),
-    "black",
-    ...Array(4).fill("white")
+    ...config.activeTeams.flatMap((team) => Array(config.teamCounts[team]).fill(team)),
+    ...Array(config.blackCount).fill("black"),
+    ...Array(config.whiteCount).fill("white")
   ];
 
   const shuffledImages = shuffle(imagePool, imageRandom);
-  const deckOffset = (Math.max(0, Number(imageRevision) || 0) * 25) % shuffledImages.length;
+  const safeImageRevision = Math.max(0, Number(imageRevision) || 0);
+  const deckOffset = (safeImageRevision * config.cardCount) % shuffledImages.length;
   const images = Array.from(
-    { length: 25 },
+    { length: config.cardCount },
     (_, index) => shuffledImages[(deckOffset + index) % shuffledImages.length]
   );
   const shuffledRoles = shuffle(roles, roleRandom);
   return {
     seed,
-    imageRevision: Math.max(0, Number(imageRevision) || 0),
+    imageRevision: safeImageRevision,
     layoutRevision: safeLayoutRevision,
+    config,
     cards: images.map((imageId, index) => ({
       index,
       imageId,
@@ -101,15 +227,16 @@ export function nextTeam(team) {
   return TEAM_ORDER[(currentIndex + 1 + TEAM_ORDER.length) % TEAM_ORDER.length];
 }
 
-export function nextActiveTurn(currentTeam, activeTeamNames, currentRound) {
-  const active = new Set(activeTeamNames.filter((team) => TEAM_ORDER.includes(team)));
+export function nextActiveTurn(currentTeam, activeTeamNames, currentRound, orderedTeams = TEAM_ORDER) {
+  const order = orderedTeams.filter((team, index) => TEAM_ORDER.includes(team) && orderedTeams.indexOf(team) === index);
+  const active = new Set(activeTeamNames.filter((team) => order.includes(team)));
   if (active.size === 0) return null;
-  const fromIndex = TEAM_ORDER.indexOf(currentTeam);
-  for (let step = 1; step <= TEAM_ORDER.length; step += 1) {
-    const index = (fromIndex + step + TEAM_ORDER.length) % TEAM_ORDER.length;
-    const team = TEAM_ORDER[index];
+  const fromIndex = order.indexOf(currentTeam);
+  for (let step = 1; step <= order.length; step += 1) {
+    const index = (fromIndex + step + order.length) % order.length;
+    const team = order[index];
     if (active.has(team)) {
-      const wrapped = fromIndex >= 0 && fromIndex + step >= TEAM_ORDER.length;
+      const wrapped = fromIndex >= 0 && fromIndex + step >= order.length;
       return {
         team,
         round: Math.max(1, Number(currentRound) || 0) + (wrapped ? 1 : 0)
@@ -131,8 +258,8 @@ export function roleCounts(cards) {
   }, {});
 }
 
-export function calculatePlacements(completionRounds) {
-  const finished = TEAM_ORDER
+export function calculatePlacements(completionRounds, teamNames = TEAM_ORDER) {
+  const finished = teamNames
     .filter((team) => Number.isInteger(completionRounds[team]))
     .map((team) => ({ team, round: completionRounds[team] }));
   const placements = {};
