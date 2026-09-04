@@ -60,7 +60,7 @@ function shuffle(items, random) {
   return copy;
 }
 
-export function buildGame(rawSeed) {
+export function buildGame(rawSeed, imageRevision = 0) {
   const seed = normalizeSeed(rawSeed) || "MVP2026";
   const imageRandom = mulberry32(hashString(seed + ":images"));
   const roleRandom = mulberry32(hashString(seed + ":roles"));
@@ -74,15 +74,21 @@ export function buildGame(rawSeed) {
     ...Array(4).fill("white")
   ];
 
-  const images = shuffle(imagePool, imageRandom).slice(0, 25);
+  const shuffledImages = shuffle(imagePool, imageRandom);
+  const deckOffset = (Math.max(0, Number(imageRevision) || 0) * 25) % shuffledImages.length;
+  const images = Array.from(
+    { length: 25 },
+    (_, index) => shuffledImages[(deckOffset + index) % shuffledImages.length]
+  );
   const shuffledRoles = shuffle(roles, roleRandom);
   return {
     seed,
+    imageRevision: Math.max(0, Number(imageRevision) || 0),
     cards: images.map((imageId, index) => ({
       index,
       imageId,
       role: shuffledRoles[index],
-      coordinate: String.fromCharCode(65 + Math.floor(index / 5)) + String((index % 5) + 1)
+      coordinate: String(index + 1)
     }))
   };
 }
@@ -92,9 +98,52 @@ export function nextTeam(team) {
   return TEAM_ORDER[(currentIndex + 1 + TEAM_ORDER.length) % TEAM_ORDER.length];
 }
 
+export function nextActiveTurn(currentTeam, activeTeamNames, currentRound) {
+  const active = new Set(activeTeamNames.filter((team) => TEAM_ORDER.includes(team)));
+  if (active.size === 0) return null;
+  const fromIndex = TEAM_ORDER.indexOf(currentTeam);
+  for (let step = 1; step <= TEAM_ORDER.length; step += 1) {
+    const index = (fromIndex + step + TEAM_ORDER.length) % TEAM_ORDER.length;
+    const team = TEAM_ORDER[index];
+    if (active.has(team)) {
+      const wrapped = fromIndex >= 0 && fromIndex + step >= TEAM_ORDER.length;
+      return {
+        team,
+        round: Math.max(1, Number(currentRound) || 0) + (wrapped ? 1 : 0)
+      };
+    }
+  }
+  return null;
+}
+
+export function answerTimeWithCarry(clueSecondsRemaining) {
+  return Math.max(0, Math.floor(Number(clueSecondsRemaining) || 0)) + 60;
+}
+
 export function roleCounts(cards) {
   return cards.reduce((counts, card) => {
     counts[card.role] = (counts[card.role] || 0) + 1;
     return counts;
   }, {});
+}
+
+export function calculatePlacements(completionRounds, eliminatedTeams = []) {
+  const finished = TEAM_ORDER
+    .filter((team) => Number.isInteger(completionRounds[team]))
+    .map((team) => ({ team, round: completionRounds[team] }));
+  const uniqueRounds = [...new Set(finished.map((entry) => entry.round))].sort((a, b) => a - b);
+  const placements = {};
+
+  for (const entry of finished) {
+    placements[entry.team] = uniqueRounds.indexOf(entry.round) + 1;
+  }
+
+  if (finished.length === TEAM_ORDER.length && eliminatedTeams.length === 0 && uniqueRounds.length > 1) {
+    const finalRound = uniqueRounds[uniqueRounds.length - 1];
+    const finalGroup = finished.filter((entry) => entry.round === finalRound);
+    const finalRank = TEAM_ORDER.length - finalGroup.length + 1;
+    for (const entry of finalGroup) placements[entry.team] = finalRank;
+  }
+
+  return placements;
 }
