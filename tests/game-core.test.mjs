@@ -72,6 +72,7 @@ test("starting answers carries the unused clue seconds into the next minute", ()
   assert.equal(answerTimeWithCarry(30), 90);
   assert.equal(answerTimeWithCarry(17), 77);
   assert.equal(answerTimeWithCarry(0), 60);
+  assert.equal(answerTimeWithCarry(12, 75), 87);
 });
 
 test("turns skip inactive teams and increment the round only after wrapping", () => {

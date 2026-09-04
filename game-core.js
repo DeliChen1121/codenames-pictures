@@ -116,8 +116,9 @@ export function nextActiveTurn(currentTeam, activeTeamNames, currentRound) {
   return null;
 }
 
-export function answerTimeWithCarry(clueSecondsRemaining) {
-  return Math.max(0, Math.floor(Number(clueSecondsRemaining) || 0)) + 60;
+export function answerTimeWithCarry(clueSecondsRemaining, answerSeconds = 60) {
+  return Math.max(0, Math.floor(Number(clueSecondsRemaining) || 0))
+    + Math.max(5, Math.floor(Number(answerSeconds) || 60));
 }
 
 export function roleCounts(cards) {

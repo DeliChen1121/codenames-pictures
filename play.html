@@ -33,7 +33,10 @@
             <span class="section-label">现在是谁的回合？</span>
             <div class="turn-title-row">
               <h1 id="current-team-name">全体队长准备</h1>
-              <span class="round-label" id="round-label">准备阶段</span>
+              <div class="turn-meta">
+                <span class="round-label" id="round-label">准备阶段</span>
+                <button class="settings-button" id="timer-settings" type="button" aria-label="时间设置" title="时间设置">⚙</button>
+              </div>
             </div>
             <p id="phase-instruction">四位队长一起查看答案；队友只看左侧图片。</p>
           </div>
@@ -73,6 +76,40 @@
         <p id="elimination-copy"></p>
         <button class="button button-secondary" id="dismiss-elimination" type="button">开始下一队</button>
       </div>
+    </div>
+
+    <div class="settings-modal" id="timer-settings-modal" hidden>
+      <form class="settings-panel" id="timer-settings-form" role="dialog" aria-modal="true" aria-labelledby="timer-settings-title">
+        <div class="settings-heading">
+          <div>
+            <p class="eyebrow">TIMER SETTINGS</p>
+            <h2 id="timer-settings-title">时间安排</h2>
+          </div>
+          <button class="settings-close" id="timer-settings-close" type="button" aria-label="关闭时间设置">×</button>
+        </div>
+
+        <p class="settings-help">保存后会按新设置重新开始当前阶段；之后的新回合也会沿用。</p>
+
+        <label class="time-setting" for="settings-prep-minutes">
+          <span><strong>开场准备</strong><small>四位队长共同查看答案</small></span>
+          <span class="time-input"><input id="settings-prep-minutes" type="number" min="0.25" max="60" step="0.25" required /><em>分钟</em></span>
+        </label>
+
+        <label class="time-setting" for="settings-clue-seconds">
+          <span><strong>队长思考</strong><small>每队开始回合后的提示时间</small></span>
+          <span class="time-input"><input id="settings-clue-seconds" type="number" min="5" max="600" step="5" required /><em>秒</em></span>
+        </label>
+
+        <label class="time-setting" for="settings-guess-seconds">
+          <span><strong>队员答题</strong><small>会与剩余队长时间相加</small></span>
+          <span class="time-input"><input id="settings-guess-seconds" type="number" min="5" max="600" step="5" required /><em>秒</em></span>
+        </label>
+
+        <div class="settings-actions">
+          <button class="text-button" id="timer-settings-defaults" type="button">恢复默认</button>
+          <button class="button button-primary" type="submit">保存时间安排</button>
+        </div>
+      </form>
     </div>
 
     <script type="module" src="./app.js"></script>

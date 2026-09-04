@@ -11,10 +11,11 @@ import {
 } from "./game-core.js";
 
 const view = document.body.dataset.view;
+const DEFAULT_TIMER_SECONDS = Object.freeze({ prep: 120, clue: 30, guess: 60 });
 const timerPresets = {
-  prep: { label: "全体队长思考", seconds: 120 },
-  clue: { label: "当前队长思考", seconds: 30 },
-  guess: { label: "当前队伍答题", seconds: 60 }
+  prep: { label: "全体队长思考" },
+  clue: { label: "当前队长思考" },
+  guess: { label: "当前队伍答题" }
 };
 
 function registerWebTool(tool) {
@@ -161,6 +162,8 @@ function setupMaster() {
 }
 
 function setupPlay() {
+  const timerSettingsKey = "codenames-four-teams:timer-settings-v1";
+  let timerSettings = loadTimerSettings();
   let seed = getSeedFromUrl() || createGameCode();
   let imageRevision = 0;
   let game = buildGame(seed, imageRevision);
@@ -170,9 +173,10 @@ function setupPlay() {
   let eliminatedTeams = {};
   let completionRounds = {};
   let timerPhase = "prep";
-  let timerRemaining = timerPresets.prep.seconds;
+  let timerRemaining = timerSettings.prep;
   let timerRunning = false;
   let timerHandle = null;
+  let resumeTimerAfterSettings = false;
 
   const board = document.querySelector("#game-board");
   const turnConsole = document.querySelector("#turn-console");
@@ -188,12 +192,37 @@ function setupPlay() {
   const startAnsweringButton = document.querySelector("#start-answering");
   const nextTeamButton = document.querySelector("#next-team");
   const fullscreenButton = document.querySelector("#fullscreen");
+  const timerSettingsButton = document.querySelector("#timer-settings");
+  const timerSettingsModal = document.querySelector("#timer-settings-modal");
+  const timerSettingsForm = document.querySelector("#timer-settings-form");
+  const prepMinutesInput = document.querySelector("#settings-prep-minutes");
+  const clueSecondsInput = document.querySelector("#settings-clue-seconds");
+  const guessSecondsInput = document.querySelector("#settings-guess-seconds");
   const eliminationNotice = document.querySelector("#elimination-notice");
   const eliminationCopy = document.querySelector("#elimination-copy");
   const dismissElimination = document.querySelector("#dismiss-elimination");
 
   function stateKey() {
     return "codenames-four-teams:" + seed;
+  }
+
+  function loadTimerSettings() {
+    try {
+      const stored = JSON.parse(localStorage.getItem(timerSettingsKey) || "null");
+      if (!stored) return { ...DEFAULT_TIMER_SECONDS };
+      return {
+        prep: validTimerSeconds(stored.prep, DEFAULT_TIMER_SECONDS.prep, 15),
+        clue: validTimerSeconds(stored.clue, DEFAULT_TIMER_SECONDS.clue),
+        guess: validTimerSeconds(stored.guess, DEFAULT_TIMER_SECONDS.guess)
+      };
+    } catch {
+      localStorage.removeItem(timerSettingsKey);
+      return { ...DEFAULT_TIMER_SECONDS };
+    }
+  }
+
+  function validTimerSeconds(value, fallback, minimum = 5) {
+    return Number.isInteger(value) && value >= minimum && value <= 3600 ? value : fallback;
   }
 
   function saveState() {
@@ -378,6 +407,7 @@ function setupPlay() {
     }
 
     startAnsweringButton.disabled = finished || !currentTeam || !isActive(currentTeam) || timerPhase !== "clue";
+    startAnsweringButton.querySelector("span").textContent = "+ " + formatTime(timerSettings.guess);
     nextTeamButton.disabled = finished || !currentTeam || !isActive(currentTeam);
     document.querySelector("#master-link").href = masterUrl(seed).href;
     renderTeams();
@@ -395,7 +425,7 @@ function setupPlay() {
     timerDisplay.textContent = formatTime(timerRemaining);
     if (timerRunning) {
       timerToggle.textContent = "暂停";
-    } else if (timerPhase === "prep" && timerRemaining === timerPresets.prep.seconds) {
+    } else if (timerPhase === "prep" && timerRemaining === timerSettings.prep) {
       timerToggle.textContent = "开始准备";
     } else {
       timerToggle.textContent = "继续";
@@ -411,7 +441,7 @@ function setupPlay() {
     if (shouldRender) renderTimer();
   }
 
-  function configureTimer(phase, seconds = timerPresets[phase].seconds, autoStart = false) {
+  function configureTimer(phase, seconds = timerSettings[phase], autoStart = false) {
     stopTimer(false);
     timerPhase = phase;
     timerRemaining = Math.max(0, seconds);
@@ -429,8 +459,8 @@ function setupPlay() {
     }
     currentTeam = firstTeam;
     round = Math.max(1, round);
-    configureTimer("clue", timerPresets.clue.seconds, true);
-    message.textContent = "准备时间结束。现在轮到" + TEAMS[currentTeam].name + "，队长有 30 秒思考。";
+    configureTimer("clue", timerSettings.clue, true);
+    message.textContent = "准备时间结束。现在轮到" + TEAMS[currentTeam].name + "，队长有 " + formatTime(timerSettings.clue) + " 思考。";
     saveState();
   }
 
@@ -439,8 +469,8 @@ function setupPlay() {
       throw new Error("只有在当前队长思考阶段才能开始答题。");
     }
     const carriedSeconds = timerRemaining;
-    configureTimer("guess", answerTimeWithCarry(carriedSeconds), true);
-    message.textContent = TEAMS[currentTeam].name + "开始答题：保留 " + carriedSeconds + " 秒，并增加 1 分钟。";
+    configureTimer("guess", answerTimeWithCarry(carriedSeconds, timerSettings.guess), true);
+    message.textContent = TEAMS[currentTeam].name + "开始答题：保留 " + carriedSeconds + " 秒，并增加 " + formatTime(timerSettings.guess) + "。";
   }
 
   function startTimer() {
@@ -493,8 +523,8 @@ function setupPlay() {
     }
     round = next.round;
     currentTeam = next.team;
-    configureTimer("clue", timerPresets.clue.seconds, autoStart);
-    message.textContent = reason + " 现在轮到" + TEAMS[currentTeam].name + "，队长有 30 秒思考。";
+    configureTimer("clue", timerSettings.clue, autoStart);
+    message.textContent = reason + " 现在轮到" + TEAMS[currentTeam].name + "，队长有 " + formatTime(timerSettings.clue) + " 思考。";
     saveState();
   }
 
@@ -502,7 +532,7 @@ function setupPlay() {
     if (!isActive(team)) return;
     currentTeam = team;
     round = Math.max(1, round);
-    configureTimer("clue", timerPresets.clue.seconds, true);
+    configureTimer("clue", timerSettings.clue, true);
     message.textContent = "主持人已将回合切换到" + TEAMS[team].name + "。";
     saveState();
   }
@@ -531,7 +561,7 @@ function setupPlay() {
       stopTimer(false);
       advanceTeam(TEAMS[guessingTeam].name + "翻到黑色并出局。", false);
       const nextCopy = currentTeam
-        ? "下一队是" + TEAMS[currentTeam].name + "；关闭提示后开始 30 秒队长思考。"
+        ? "下一队是" + TEAMS[currentTeam].name + "；关闭提示后开始 " + formatTime(timerSettings.clue) + " 队长思考。"
         : "没有仍在比赛中的队伍。";
       message.textContent = TEAMS[guessingTeam].name + "翻到黑色并出局。" + nextCopy;
       eliminationCopy.textContent = TEAMS[guessingTeam].name + "已被淘汰，之后的回合会自动跳过该队。";
@@ -575,11 +605,54 @@ function setupPlay() {
     eliminatedTeams = {};
     completionRounds = {};
     eliminationNotice.hidden = true;
-    configureTimer("prep", timerPresets.prep.seconds, false);
-    message.textContent = "本局进度已重置。请开始 2 分钟的全体队长准备时间。";
+    configureTimer("prep", timerSettings.prep, false);
+    message.textContent = "本局进度已重置。请开始 " + formatTime(timerSettings.prep) + " 的全体队长准备时间。";
     saveState();
     renderBoard();
     renderStatus();
+  }
+
+  function fillTimerSettingsForm(settings = timerSettings) {
+    prepMinutesInput.value = String(settings.prep / 60);
+    clueSecondsInput.value = String(settings.clue);
+    guessSecondsInput.value = String(settings.guess);
+  }
+
+  function normalizeTimerSettings(nextSettings) {
+    const normalized = {
+      prep: Math.round(Number(nextSettings.prep)),
+      clue: Math.round(Number(nextSettings.clue)),
+      guess: Math.round(Number(nextSettings.guess))
+    };
+    for (const phase of Object.keys(normalized)) {
+      const minimum = phase === "prep" ? 15 : 5;
+      if (!Number.isInteger(normalized[phase]) || normalized[phase] < minimum || normalized[phase] > 3600) {
+        throw new Error("开场时间至少 15 秒；其他阶段必须设置为 5 到 3600 秒。");
+      }
+    }
+    return normalized;
+  }
+
+  function applyTimerSettings(nextSettings, shouldResume = false) {
+    timerSettings = normalizeTimerSettings(nextSettings);
+    localStorage.setItem(timerSettingsKey, JSON.stringify(timerSettings));
+    configureTimer(timerPhase, timerSettings[timerPhase], shouldResume && !gameIsFinished());
+    message.textContent = "时间安排已更新：开场 " + formatTime(timerSettings.prep) + "，队长 " + formatTime(timerSettings.clue) + "，答题 " + formatTime(timerSettings.guess) + "。";
+  }
+
+  function openTimerSettings() {
+    resumeTimerAfterSettings = timerRunning;
+    stopTimer();
+    fillTimerSettingsForm();
+    timerSettingsModal.hidden = false;
+    prepMinutesInput.focus();
+  }
+
+  function closeTimerSettings() {
+    timerSettingsModal.hidden = true;
+    if (resumeTimerAfterSettings) startTimer();
+    resumeTimerAfterSettings = false;
+    timerSettingsButton.focus();
   }
 
   function load(nextSeed, requestedImageRevision = null) {
@@ -596,13 +669,13 @@ function setupPlay() {
     fillSeedForm(seed);
     eliminationNotice.hidden = true;
     if (currentTeam) {
-      configureTimer("clue", timerPresets.clue.seconds, false);
+      configureTimer("clue", timerSettings.clue, false);
       message.textContent = "已恢复本局进度。当前为" + TEAMS[currentTeam].name + "，请继续队长思考计时。";
     } else {
-      configureTimer("prep", timerPresets.prep.seconds, false);
+      configureTimer("prep", timerSettings.prep, false);
       message.textContent = restored && gameIsFinished()
         ? "已恢复最终结果。"
-        : "先开始 2 分钟的全体队长准备时间。";
+        : "先开始 " + formatTime(timerSettings.prep) + " 的全体队长准备时间。";
     }
     renderBoard();
     renderStatus();
@@ -613,8 +686,29 @@ function setupPlay() {
   document.querySelector("#refresh-images").addEventListener("click", refreshImages);
   timerToggle.addEventListener("click", () => timerRunning ? stopTimer() : startTimer());
   document.querySelector("#timer-reset").addEventListener("click", () => {
-    configureTimer(timerPhase, timerPresets[timerPhase].seconds, false);
+    configureTimer(timerPhase, timerSettings[timerPhase], false);
     message.textContent = timerPresets[timerPhase].label + "已重新计时。";
+  });
+  timerSettingsButton.addEventListener("click", openTimerSettings);
+  document.querySelector("#timer-settings-close").addEventListener("click", closeTimerSettings);
+  document.querySelector("#timer-settings-defaults").addEventListener("click", () => fillTimerSettingsForm(DEFAULT_TIMER_SECONDS));
+  timerSettingsModal.addEventListener("click", (event) => {
+    if (event.target === timerSettingsModal) closeTimerSettings();
+  });
+  timerSettingsModal.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeTimerSettings();
+  });
+  timerSettingsForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const shouldResume = resumeTimerAfterSettings;
+    resumeTimerAfterSettings = false;
+    applyTimerSettings({
+      prep: Number(prepMinutesInput.value) * 60,
+      clue: Number(clueSecondsInput.value),
+      guess: Number(guessSecondsInput.value)
+    }, shouldResume);
+    timerSettingsModal.hidden = true;
+    timerSettingsButton.focus();
   });
   fullscreenButton.addEventListener("click", async () => {
     if (!document.fullscreenElement) await document.documentElement.requestFullscreen();
@@ -670,7 +764,7 @@ function setupPlay() {
   registerWebTool({
     name: "set_codenames_current_team",
     title: "设置当前队伍",
-    description: "由主持人把当前回合切换到仍在比赛中的指定队伍，并启动 30 秒队长思考计时。",
+    description: "由主持人把当前回合切换到仍在比赛中的指定队伍，并启动已设置的队长思考计时。",
     inputSchema: {
       type: "object",
       properties: { team: { type: "string", enum: TEAM_ORDER } },
@@ -689,7 +783,7 @@ function setupPlay() {
   registerWebTool({
     name: "start_codenames_answering",
     title: "开始答题",
-    description: "结束当前队长思考阶段，把剩余秒数与 60 秒相加，并立即开始队伍答题计时。",
+    description: "结束当前队长思考阶段，把剩余秒数与已设置的答题时间相加，并立即开始计时。",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
     annotations: { readOnlyHint: false, untrustedContentHint: false },
     execute(input) {
@@ -702,7 +796,7 @@ function setupPlay() {
   registerWebTool({
     name: "advance_codenames_turn",
     title: "切换下一队伍",
-    description: "结束当前回合，跳过已完成或出局的队伍，并为下一队启动 30 秒队长思考计时。",
+    description: "结束当前回合，跳过已完成或出局的队伍，并为下一队启动已设置的队长思考计时。",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
     annotations: { readOnlyHint: false, untrustedContentHint: false },
     execute(input) {
@@ -724,6 +818,28 @@ function setupPlay() {
       const previousRevision = imageRevision;
       refreshImages();
       return { gameCode: seed, previousRevision, imageRevision, hiddenColorsUnchanged: true };
+    }
+  });
+
+  registerWebTool({
+    name: "set_codenames_timer_settings",
+    title: "设置游戏时间",
+    description: "设置开场准备、队长思考和队员答题三个阶段的秒数，并按新设置重置当前阶段。",
+    inputSchema: {
+      type: "object",
+      properties: {
+        prepSeconds: { type: "integer", minimum: 15, maximum: 3600 },
+        clueSeconds: { type: "integer", minimum: 5, maximum: 3600 },
+        guessSeconds: { type: "integer", minimum: 5, maximum: 3600 }
+      },
+      required: ["prepSeconds", "clueSeconds", "guessSeconds"],
+      additionalProperties: false
+    },
+    annotations: { readOnlyHint: false, untrustedContentHint: false },
+    execute(input) {
+      const wasRunning = timerRunning;
+      applyTimerSettings({ prep: input?.prepSeconds, clue: input?.clueSeconds, guess: input?.guessSeconds }, wasRunning);
+      return { ...timerSettings, timerPhase, timerRemaining };
     }
   });
 
