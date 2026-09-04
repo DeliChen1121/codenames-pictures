@@ -1,0 +1,45 @@
+# 代号：图像 · 四队现场版
+
+一个面向线下活动主持人的四队 Codenames Pictures MVP。答案页先生成局号，玩家题板通过同一局号得到相同的 25 张图片和颜色布局。
+
+## MVP 功能
+
+- 5 × 5 图片题板
+- 红、黄、蓝、绿各 5 张，黑色 1 张，白色 4 张
+- 独立的 Master Card 答案页面
+- 确定性局号：相同局号永远生成同一题板
+- 当前回合与四队剩余图片计数
+- 点击翻牌：本队颜色继续；其他队或白色自动换队；黑色结束游戏
+- 主持人手动切换队伍
+- 2 分钟开局思考、30 秒队长思考和 1 分钟队员作答计时
+- 揭牌进度保存在当前浏览器
+
+## 本地运行
+
+```bash
+npm run build
+npm run dev
+```
+
+然后打开 `http://localhost:4173/`。Master Card 在首页，玩家题板在 `/play.html?game=局号`。
+
+## 图片来源
+
+图片地址兼容原项目 `samdemaeyer/codenames-pictures` 的 `public/images/cards/card-N.jpg` 命名方式。程序优先加载本地 `public/images/cards/`，本地文件不存在时回退到原项目的 GitHub Pages 地址。
+
+原项目：<https://github.com/samdemaeyer/codenames-pictures>
+
+原仓库当前未显示明确许可证。请将本项目和原图片限制在私人测试/活动用途；公开发布或商业使用前应先确认授权，或替换为拥有许可的图片库。
+
+## 项目结构
+
+- `index.html`：Master Card
+- `play.html`：主持人/玩家题板
+- `game-core.js`：局号、随机布局与队伍规则
+- `app.js`：界面交互、揭牌、回合与计时
+- `styles.css`：现场大屏与移动端样式
+- `tests/`：核心规则测试
+
+## 后续建议
+
+MVP 不需要服务器。若以后希望多台设备实时同步主持人的揭牌、计时和回合状态，可以在保持局号算法不变的前提下增加房间服务或实时数据库。

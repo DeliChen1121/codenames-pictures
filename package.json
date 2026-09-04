@@ -1,0 +1,11 @@
+{
+  "name": "codenames-pictures-four-teams",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "sh scripts/build.sh",
+    "dev": "python3 -m http.server 4173 --directory dist",
+    "test": "node --test tests/*.test.mjs"
+  }
+}

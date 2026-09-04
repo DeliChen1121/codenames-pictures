@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#07111f" />
+    <meta name="description" content="四队现场版代号图像主持题板" />
+    <title>玩家题板 · 代号：图像</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body data-view="play">
+    <main class="shell play-shell">
+      <header class="topbar play-topbar">
+        <a class="brand" id="master-link" href="./index.html" aria-label="打开队长答案页">
+          <span class="brand-mark" aria-hidden="true">⌁</span>
+          <span><strong>代号：图像</strong><small>主持人主控</small></span>
+        </a>
+
+        <form class="compact-seed-form" id="seed-form">
+          <label for="game-code">局号</label>
+          <input id="game-code" name="game" maxlength="10" autocomplete="off" spellcheck="false" />
+          <button class="button button-quiet" type="submit">载入</button>
+        </form>
+      </header>
+
+      <section class="turn-console" id="turn-console">
+        <div class="turn-status">
+          <span class="section-label">现在是谁的回合？</span>
+          <div class="team-switcher" id="team-switcher" role="group" aria-label="选择当前队伍"></div>
+        </div>
+
+        <div class="timer" aria-label="回合计时器">
+          <div class="timer-copy">
+            <span id="timer-phase">开局思考</span>
+            <strong id="timer-display">02:00</strong>
+          </div>
+          <button class="timer-toggle" id="timer-toggle" type="button">开始</button>
+          <button class="icon-button" id="timer-reset" type="button" aria-label="重新计时" title="重新计时">↻</button>
+        </div>
+
+        <div class="turn-actions">
+          <button class="button button-primary" id="next-team" type="button">下一个队伍 <span aria-hidden="true">→</span></button>
+          <button class="button button-quiet" id="fullscreen" type="button">全屏</button>
+        </div>
+      </section>
+
+      <section class="score-strip" id="score-strip" aria-label="各队剩余图片"></section>
+
+      <section class="game-board" id="game-board" aria-label="5乘5图片题板"></section>
+
+      <footer class="play-footer">
+        <p id="game-message" role="status" aria-live="polite">点击图片翻牌；猜中本队可继续，其他颜色或白色会自动换队。</p>
+        <button class="text-button" id="reset-board" type="button">重置本局揭牌</button>
+      </footer>
+    </main>
+
+    <div class="game-over" id="game-over" hidden>
+      <div class="game-over-card" role="dialog" aria-modal="true" aria-labelledby="game-over-title">
+        <span class="assassin-mark" aria-hidden="true">×</span>
+        <p class="eyebrow">ASSASSIN</p>
+        <h2 id="game-over-title">触发黑色，游戏结束</h2>
+        <p id="game-over-copy"></p>
+        <button class="button button-secondary" id="dismiss-game-over" type="button">查看题板</button>
+      </div>
+    </div>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
