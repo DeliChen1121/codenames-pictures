@@ -129,6 +129,12 @@ test("two-team mode contains only red and blue and gives the first team the extr
   assert.deepEqual(teamsForCount(3), ["red", "yellow", "blue"]);
 });
 
+test("every team-count mode defaults to the canonical red-first order", () => {
+  assert.deepEqual(createGameConfig({ teamCount: 2, mode: "classic" }, "ANY-SEED").turnOrder, ["red", "blue"]);
+  assert.deepEqual(createGameConfig({ teamCount: 3, mode: "classic" }, "ANY-SEED").turnOrder, ["red", "yellow", "blue"]);
+  assert.deepEqual(createGameConfig({ teamCount: 4, mode: "classic" }, "ANY-SEED").turnOrder, ["red", "yellow", "blue", "green"]);
+});
+
 test("custom rules produce a deterministic dynamic grid", () => {
   const custom = createGameConfig({
     teamCount: 3,

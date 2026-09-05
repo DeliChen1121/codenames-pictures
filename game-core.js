@@ -107,12 +107,11 @@ export function getGamePreset(rawTeamCount, rawMode = "classic") {
   return { ...PRESETS[teamCount][mode] };
 }
 
-export function resolveFirstTeam(rawSeed, activeTeams, requestedTeam = "random") {
+export function resolveFirstTeam(rawSeed, activeTeams, requestedTeam = "red") {
   const safeTeams = activeTeams.filter((team) => TEAM_ORDER.includes(team));
   if (safeTeams.length === 0) throw new Error("至少需要一个可用队伍。");
   if (safeTeams.includes(requestedTeam)) return requestedTeam;
-  const seed = normalizeSeed(rawSeed) || "MVP2026";
-  return safeTeams[hashString(seed + ":first") % safeTeams.length];
+  return safeTeams[0];
 }
 
 export function createGameConfig(options = {}, rawSeed = "MVP2026") {

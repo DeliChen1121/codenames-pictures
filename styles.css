@@ -1409,6 +1409,16 @@ body[data-view="play"] {
   line-height: 1.5;
 }
 
+.settings-warning {
+  margin: 0.25rem 0 0;
+  padding: 0.65rem 0.75rem;
+  border-left: 0.22rem solid #f7c948;
+  color: #d9c987;
+  background: rgba(247, 201, 72, 0.07);
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
 .time-setting {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -1749,40 +1759,6 @@ html:fullscreen .play-topbar {
   display: none;
 }
 
-.sidebar-resizer {
-  position: absolute;
-  z-index: 5;
-  top: 0.6rem;
-  bottom: 0.6rem;
-  left: -0.72rem;
-  display: grid;
-  width: 0.95rem;
-  place-items: center;
-  border: 0;
-  border-radius: 0.55rem;
-  color: #a9bdd1;
-  background: rgba(17, 35, 55, 0.94);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.16);
-  cursor: col-resize;
-  touch-action: none;
-}
-
-.sidebar-resizer span {
-  font-size: 1rem;
-  letter-spacing: -0.25em;
-}
-
-.sidebar-resizer:hover,
-.sidebar-resizer:focus-visible {
-  color: white;
-  background: color-mix(in srgb, var(--active-team), #122338 72%);
-}
-
-body.is-resizing-sidebar {
-  cursor: col-resize;
-  user-select: none;
-}
-
 .host-sidebar .timer {
   grid-template-columns: minmax(5.5rem, 1fr) auto;
 }
@@ -1799,10 +1775,6 @@ body.is-resizing-sidebar {
 }
 
 @media (max-width: 900px) {
-  .sidebar-resizer {
-    display: none;
-  }
-
   .answer-shell {
     height: auto;
     min-height: 100svh;

@@ -155,10 +155,10 @@ function gameConfigFromUrl(seed) {
       teamCounts,
       whiteCount: params.get("white"),
       blackCount: params.get("black"),
-      firstTeam: params.get("first") || "random"
+      firstTeam: params.get("first") || activeTeams[0]
     }, seed);
   } catch {
-    return createGameConfig({ teamCount, mode: "classic", firstTeam: params.get("first") || "random" }, seed);
+    return createGameConfig({ teamCount, mode: "classic", firstTeam: params.get("first") || activeTeams[0] }, seed);
   }
 }
 
@@ -286,9 +286,9 @@ function setupStart() {
   function rebuildFirstTeamOptions() {
     const activeTeams = teamsForCount(selectedTeamCount());
     const previous = firstTeamSelect.value;
-    firstTeamSelect.replaceChildren(new Option("按局号随机", "random"));
+    firstTeamSelect.replaceChildren();
     for (const team of activeTeams) firstTeamSelect.add(new Option(TEAMS[team].name, team));
-    firstTeamSelect.value = activeTeams.includes(previous) ? previous : "random";
+    firstTeamSelect.value = activeTeams.includes(previous) ? previous : activeTeams[0];
   }
 
   function countInput(label, value, key) {
@@ -421,7 +421,7 @@ function setupMaster() {
   board.setAttribute("aria-label", config.gridSize + "乘" + config.gridSize + "队长答案卡");
   board.replaceChildren(...game.cards.map(masterPictureCard));
   const legendRoles = [
-    ...config.activeTeams.map((team) => [team, TEAMS[team].name, config.teamCounts[team]]),
+    ...config.turnOrder.map((team) => [team, TEAMS[team].name, config.teamCounts[team]]),
     ["black", "黑色", config.blackCount],
     ["white", "白色", config.whiteCount]
   ];
@@ -435,14 +435,13 @@ function setupMaster() {
 
 function setupPlay() {
   const timerSettingsKey = "codenames-four-teams:timer-settings-v1";
-  const sidebarWidthKey = "codenames-four-teams:sidebar-width-v2";
   let timerSettings = loadTimerSettings();
   let seed = getSeedFromUrl() || createGameCode();
   let imageRevision = getImageRevisionFromUrl() ?? 0;
   let layoutRevision = getLayoutRevisionFromUrl() ?? 0;
   const requestedConfig = gameConfigFromUrl(seed);
   let game = buildGame(seed, imageRevision, layoutRevision, requestedConfig);
-  const config = game.config;
+  let config = game.config;
   let revealed = new Set();
   let currentTeam = null;
   let round = 0;
@@ -475,8 +474,6 @@ function setupPlay() {
   const copyMasterButton = document.querySelector("#copy-master-link");
   const openMasterWindow = document.querySelector("#open-master-window");
   const copyMasterFeedback = document.querySelector("#copy-master-feedback");
-  const gameLayout = document.querySelector(".game-layout");
-  const sidebarResizer = document.querySelector("#sidebar-resizer");
   const timerSettingsButton = document.querySelector("#timer-settings");
   const timerSettingsModal = document.querySelector("#timer-settings-modal");
   const timerSettingsForm = document.querySelector("#timer-settings-form");
@@ -484,6 +481,7 @@ function setupPlay() {
   const clueSecondsInput = document.querySelector("#settings-clue-seconds");
   const guessSecondsInput = document.querySelector("#settings-guess-seconds");
   const fontSizeInput = document.querySelector("#settings-font-size");
+  const priorityTeamInput = document.querySelector("#settings-priority-team");
   const eliminationNotice = document.querySelector("#elimination-notice");
   const eliminationCopy = document.querySelector("#elimination-copy");
   const dismissElimination = document.querySelector("#dismiss-elimination");
@@ -630,7 +628,7 @@ function setupPlay() {
 
   function renderTeams() {
     const placements = calculatePlacements(completionRounds, config.activeTeams);
-    teamSwitcher.replaceChildren(...config.activeTeams.map((team) => {
+    teamSwitcher.replaceChildren(...config.turnOrder.map((team) => {
       const button = document.createElement("button");
       const remaining = remainingFor(team);
       const isEliminated = Boolean(eliminatedTeams[team]);
@@ -1095,6 +1093,29 @@ function setupPlay() {
     clueSecondsInput.value = String(settings.clue);
     guessSecondsInput.value = String(settings.guess);
     fontSizeInput.value = fontSizePreset;
+    priorityTeamInput.replaceChildren(...config.activeTeams.map((team) => new Option(TEAMS[team].name, team)));
+    priorityTeamInput.value = config.firstTeam;
+  }
+
+  function applyTeamPriority(nextFirstTeam) {
+    if (!config.activeTeams.includes(nextFirstTeam) || nextFirstTeam === config.firstTeam) return false;
+    const teamCounts = { ...config.teamCounts };
+    if (config.teamCount === 2) {
+      const previousFirstTeam = config.firstTeam;
+      [teamCounts[previousFirstTeam], teamCounts[nextFirstTeam]] = [teamCounts[nextFirstTeam], teamCounts[previousFirstTeam]];
+    }
+    config = createGameConfig({
+      teamCount: config.teamCount,
+      mode: config.mode,
+      gridSize: config.gridSize,
+      firstTeam: nextFirstTeam,
+      teamCounts,
+      whiteCount: config.whiteCount,
+      blackCount: config.blackCount
+    }, seed);
+    game = buildGame(seed, imageRevision, layoutRevision, config);
+    setGameInUrl(seed, imageRevision, layoutRevision, config);
+    return true;
   }
 
   function normalizeTimerSettings(nextSettings) {
@@ -1132,60 +1153,6 @@ function setupPlay() {
     if (resumeTimerAfterSettings) startTimer();
     resumeTimerAfterSettings = false;
     timerSettingsButton.focus();
-  }
-
-  function sidebarWidthBounds() {
-    return {
-      min: 320,
-      max: Math.max(320, Math.min(820, window.innerWidth - 500))
-    };
-  }
-
-  function setSidebarWidth(nextWidth, persist = true) {
-    const bounds = sidebarWidthBounds();
-    const width = Math.round(Math.min(bounds.max, Math.max(bounds.min, Number(nextWidth) || 352)));
-    gameLayout.style.setProperty("--sidebar-width", width + "px");
-    sidebarResizer.setAttribute("aria-valuemin", String(bounds.min));
-    sidebarResizer.setAttribute("aria-valuemax", String(bounds.max));
-    sidebarResizer.setAttribute("aria-valuenow", String(width));
-    if (persist) storageSet(sidebarWidthKey, String(width));
-    return width;
-  }
-
-  function setupSidebarResize() {
-    setSidebarWidth(Number(storageGet(sidebarWidthKey)) || turnConsole.getBoundingClientRect().width, false);
-
-    sidebarResizer.addEventListener("pointerdown", (event) => {
-      if (window.innerWidth <= 900) return;
-      event.preventDefault();
-      const rightEdge = turnConsole.getBoundingClientRect().right;
-      sidebarResizer.setPointerCapture(event.pointerId);
-      document.body.classList.add("is-resizing-sidebar");
-
-      const onMove = (moveEvent) => setSidebarWidth(rightEdge - moveEvent.clientX);
-      const onEnd = () => {
-        document.body.classList.remove("is-resizing-sidebar");
-        sidebarResizer.removeEventListener("pointermove", onMove);
-        sidebarResizer.removeEventListener("pointerup", onEnd);
-        sidebarResizer.removeEventListener("pointercancel", onEnd);
-      };
-
-      sidebarResizer.addEventListener("pointermove", onMove);
-      sidebarResizer.addEventListener("pointerup", onEnd);
-      sidebarResizer.addEventListener("pointercancel", onEnd);
-    });
-
-    sidebarResizer.addEventListener("keydown", (event) => {
-      if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
-      event.preventDefault();
-      const bounds = sidebarWidthBounds();
-      const current = turnConsole.getBoundingClientRect().width;
-      if (event.key === "Home") setSidebarWidth(bounds.min);
-      else if (event.key === "End") setSidebarWidth(bounds.max);
-      else setSidebarWidth(current + (event.key === "ArrowLeft" ? 20 : -20));
-    });
-
-    window.addEventListener("resize", () => setSidebarWidth(turnConsole.getBoundingClientRect().width, false));
   }
 
   function load(nextSeed, requestedImageRevision = null, requestedLayoutRevision = null) {
@@ -1259,15 +1226,19 @@ function setupPlay() {
     event.preventDefault();
     const shouldResume = resumeTimerAfterSettings;
     resumeTimerAfterSettings = false;
+    const priorityChanged = applyTeamPriority(priorityTeamInput.value);
     applyFontSizePreset(fontSizeInput.value);
     applyTimerSettings({
       prep: Number(prepMinutesInput.value) * 60,
       clue: Number(clueSecondsInput.value),
       guess: Number(guessSecondsInput.value)
-    }, shouldResume);
+    }, shouldResume && !priorityChanged);
+    if (priorityChanged) {
+      resetGame();
+      message.textContent = TEAMS[config.firstTeam].name + "已设为优先队伍；本局已重置，顺序为 " + config.turnOrder.map((team) => TEAMS[team].name).join(" → ") + "。";
+    }
     timerSettingsModal.hidden = true;
     timerSettingsButton.focus();
-    window.requestAnimationFrame(() => setSidebarWidth(turnConsole.getBoundingClientRect().width, false));
   });
   fullscreenButton.addEventListener("click", async () => {
     if (!document.fullscreenElement) await document.documentElement.requestFullscreen();
@@ -1296,8 +1267,6 @@ function setupPlay() {
     if (event.key !== stateKey()) return;
     load(seed, imageRevision, layoutRevision);
   });
-  setupSidebarResize();
-
   registerWebTool({
     name: "reveal_codenames_picture",
     title: "翻开图片",
@@ -1424,15 +1393,16 @@ function setupPlay() {
 
   registerWebTool({
     name: "set_codenames_timer_settings",
-    title: "设置游戏时间",
-    description: "设置开场准备、队长思考和队员答题三个阶段的秒数，也可以调整界面字号，并按新设置重置当前阶段。",
+    title: "设置游戏",
+    description: "设置三个计时阶段、界面字号和优先队伍。更改优先队伍会重置本局。",
     inputSchema: {
       type: "object",
       properties: {
         prepSeconds: { type: "integer", minimum: 15, maximum: 3600 },
         clueSeconds: { type: "integer", minimum: 5, maximum: 3600 },
         guessSeconds: { type: "integer", minimum: 5, maximum: 3600 },
-        fontSize: { type: "string", enum: ["small", "standard", "large", "huge"] }
+        fontSize: { type: "string", enum: ["small", "standard", "large", "huge"] },
+        priorityTeam: { type: "string", enum: config.activeTeams }
       },
       required: ["prepSeconds", "clueSeconds", "guessSeconds"],
       additionalProperties: false
@@ -1440,9 +1410,11 @@ function setupPlay() {
     annotations: { readOnlyHint: false, untrustedContentHint: false },
     execute(input) {
       const wasRunning = timerRunning;
+      const priorityChanged = input?.priorityTeam ? applyTeamPriority(input.priorityTeam) : false;
       if (input?.fontSize) applyFontSizePreset(input.fontSize);
-      applyTimerSettings({ prep: input?.prepSeconds, clue: input?.clueSeconds, guess: input?.guessSeconds }, wasRunning);
-      return { ...timerSettings, fontSize: fontSizePreset, timerPhase, timerRemaining };
+      applyTimerSettings({ prep: input?.prepSeconds, clue: input?.clueSeconds, guess: input?.guessSeconds }, wasRunning && !priorityChanged);
+      if (priorityChanged) resetGame();
+      return { ...timerSettings, fontSize: fontSizePreset, priorityTeam: config.firstTeam, turnOrder: config.turnOrder, timerPhase, timerRemaining };
     }
   });
 

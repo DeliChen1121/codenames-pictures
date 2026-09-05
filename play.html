@@ -33,7 +33,6 @@
         <section class="game-board" id="game-board" aria-label="图片题板"></section>
 
         <aside class="host-sidebar" id="turn-console" data-team="prep" aria-label="主持人控制台">
-          <div class="sidebar-resizer" id="sidebar-resizer" role="separator" aria-label="拖动调整主持人控制台宽度" aria-orientation="vertical" aria-valuemin="320" aria-valuemax="820" tabindex="0"><span aria-hidden="true">⋮</span></div>
           <div class="turn-heading">
             <span class="section-label">现在是谁的回合？</span>
             <div class="turn-title-row">
@@ -122,6 +121,15 @@
             </select>
           </span>
         </label>
+
+        <label class="time-setting" for="settings-priority-team">
+          <span><strong>优先队伍</strong><small>该队先行动，其他队按颜色顺序循环</small></span>
+          <span class="time-input">
+            <select id="settings-priority-team"></select>
+          </span>
+        </label>
+
+        <p class="settings-warning">更改优先队伍会重置本局进度，并重新进入全体队长准备阶段。</p>
 
         <div class="settings-actions">
           <button class="text-button" id="timer-settings-defaults" type="button">恢复默认</button>
