@@ -155,6 +155,7 @@ function gameConfigFromUrl(seed) {
       teamCounts,
       whiteCount: params.get("white"),
       blackCount: params.get("black"),
+      turnOrder: params.get("order")?.split(","),
       firstTeam: params.get("first") || activeTeams[0]
     }, seed);
   } catch {
@@ -169,6 +170,7 @@ function writeGameConfigToUrl(url, config) {
   url.searchParams.set("white", String(config.whiteCount));
   url.searchParams.set("black", String(config.blackCount));
   url.searchParams.set("first", config.firstTeam);
+  url.searchParams.set("order", config.turnOrder.join(","));
   for (const team of TEAM_ORDER) {
     if (config.activeTeams.includes(team)) url.searchParams.set(team, String(config.teamCounts[team]));
     else url.searchParams.delete(team);
@@ -177,6 +179,30 @@ function writeGameConfigToUrl(url, config) {
 
 function gameModeSummary(config) {
   return config.teamCount + " 队 · " + MODE_NAMES[config.mode] + " · " + config.gridSize + "×" + config.gridSize;
+}
+
+function teamOrderPermutations(teams) {
+  if (teams.length <= 1) return [[...teams]];
+  return teams.flatMap((team) => teamOrderPermutations(teams.filter((candidate) => candidate !== team))
+    .map((rest) => [team, ...rest]));
+}
+
+function teamOrderValue(order) {
+  return order.join(",");
+}
+
+function fillTeamOrderSelect(select, activeTeams, selectedOrder = activeTeams) {
+  select.replaceChildren(...teamOrderPermutations(activeTeams).map((order) => (
+    new Option(order.map((team) => TEAMS[team].short).join(" → "), teamOrderValue(order))
+  )));
+  const selectedValue = teamOrderValue(selectedOrder);
+  select.value = [...select.options].some((option) => option.value === selectedValue)
+    ? selectedValue
+    : teamOrderValue(activeTeams);
+}
+
+function readTeamOrder(select) {
+  return select.value.split(",").filter(Boolean);
 }
 
 function setGameInUrl(seed, imageRevision = 0, layoutRevision = 0, config) {
@@ -252,7 +278,7 @@ function masterPictureCard(card) {
 function setupStart() {
   const form = document.querySelector("#game-setup");
   const startButton = document.querySelector("#start-game");
-  const firstTeamSelect = document.querySelector("#custom-first-team");
+  const teamOrderSelect = document.querySelector("#custom-team-order");
   const teamCountsContainer = document.querySelector("#custom-team-counts");
   const gridSizeInput = document.querySelector("#custom-grid-size");
   const whiteCountInput = document.querySelector("#custom-white-count");
@@ -283,12 +309,10 @@ function setupStart() {
     }
   }
 
-  function rebuildFirstTeamOptions() {
+  function rebuildTeamOrderOptions() {
     const activeTeams = teamsForCount(selectedTeamCount());
-    const previous = firstTeamSelect.value;
-    firstTeamSelect.replaceChildren();
-    for (const team of activeTeams) firstTeamSelect.add(new Option(TEAMS[team].name, team));
-    firstTeamSelect.value = activeTeams.includes(previous) ? previous : activeTeams[0];
+    const previous = readTeamOrder(teamOrderSelect);
+    fillTeamOrderSelect(teamOrderSelect, activeTeams, previous);
   }
 
   function countInput(label, value, key) {
@@ -349,7 +373,7 @@ function setupStart() {
       teamCount,
       mode: isCustom ? "custom" : selectedMode(),
       gridSize: Number(gridSizeInput.value),
-      firstTeam: firstTeamSelect.value,
+      turnOrder: readTeamOrder(teamOrderSelect),
       firstCount: countValues.first,
       secondCount: countValues.second,
       teamCounts: Object.fromEntries(teamsForCount(teamCount).map((team) => [team, countValues[team]])),
@@ -368,12 +392,12 @@ function setupStart() {
 
   form.elements["team-count"].forEach((input) => input.addEventListener("change", () => {
     updateModeSummaries();
-    rebuildFirstTeamOptions();
+    rebuildTeamOrderOptions();
     applySelectedPreset();
   }));
   form.elements["game-mode"].forEach((input) => input.addEventListener("change", applySelectedPreset));
   document.querySelector("#detailed-settings").addEventListener("input", (event) => {
-    if (event.target !== firstTeamSelect) isCustom = true;
+    if (event.target !== teamOrderSelect) isCustom = true;
     validateAllocation();
   });
   form.addEventListener("submit", (event) => {
@@ -382,7 +406,7 @@ function setupStart() {
   });
 
   updateModeSummaries();
-  rebuildFirstTeamOptions();
+  rebuildTeamOrderOptions();
   applySelectedPreset();
 
   registerWebTool({
@@ -481,7 +505,7 @@ function setupPlay() {
   const clueSecondsInput = document.querySelector("#settings-clue-seconds");
   const guessSecondsInput = document.querySelector("#settings-guess-seconds");
   const fontSizeInput = document.querySelector("#settings-font-size");
-  const priorityTeamInput = document.querySelector("#settings-priority-team");
+  const teamOrderInput = document.querySelector("#settings-team-order");
   const eliminationNotice = document.querySelector("#elimination-notice");
   const eliminationCopy = document.querySelector("#elimination-copy");
   const dismissElimination = document.querySelector("#dismiss-elimination");
@@ -627,7 +651,7 @@ function setupPlay() {
   }
 
   function renderTeams() {
-    const placements = calculatePlacements(completionRounds, config.activeTeams);
+    const placements = calculatePlacements(completionRounds, config.activeTeams, eliminatedTeams);
     teamSwitcher.replaceChildren(...config.turnOrder.map((team) => {
       const button = document.createElement("button");
       const remaining = remainingFor(team);
@@ -639,8 +663,8 @@ function setupPlay() {
         status = team === winnerTeam ? "本局获胜" : (isEliminated ? "触发黑色" : "本局落败");
         badge = team === winnerTeam ? "胜利" : "失败";
       } else if (isEliminated) {
-        status = "第 " + eliminatedTeams[team] + " 轮出局";
-        badge = "出局";
+        status = "第 " + eliminatedTeams[team] + " 轮触发黑色 · 最后一名";
+        badge = ordinal(placements[team]);
       } else if (isComplete) {
         status = "第 " + completionRounds[team] + " 轮完成";
         badge = ordinal(placements[team]);
@@ -812,7 +836,7 @@ function setupPlay() {
   }
 
   function renderFinalRanking() {
-    const placements = calculatePlacements(completionRounds, config.activeTeams);
+    const placements = calculatePlacements(completionRounds, config.activeTeams, eliminatedTeams);
     const orderedTeams = [...config.activeTeams].sort((first, second) => {
       if (winnerTeam) return (first === winnerTeam ? -1 : 1) - (second === winnerTeam ? -1 : 1);
       const firstPlace = placements[first] ?? 99;
@@ -833,7 +857,7 @@ function setupPlay() {
 
       const badge = document.createElement("strong");
       badge.className = "ranking-place";
-      badge.textContent = winnerTeam ? (team === winnerTeam ? "胜利" : "失败") : (placement ? ordinal(placement) : "出局");
+      badge.textContent = winnerTeam ? (team === winnerTeam ? "胜利" : "失败") : ordinal(placement);
 
       const copy = document.createElement("span");
       const name = document.createElement("b");
@@ -843,7 +867,9 @@ function setupPlay() {
         ? (team === winnerTeam
           ? (completionRounds[team] ? "第 " + completionRounds[team] + " 轮率先完成" : "对手触发黑色")
           : (eliminatedRound ? "第 " + eliminatedRound + " 轮触发黑色" : "对手率先完成"))
-        : (placement ? "第 " + completionRounds[team] + " 轮完成" : "第 " + eliminatedRound + " 轮触发黑色");
+        : (eliminatedRound
+          ? "第 " + eliminatedRound + " 轮触发黑色，列为最后一名"
+          : "第 " + completionRounds[team] + " 轮完成");
       copy.append(name, detail);
       row.append(badge, copy);
       return row;
@@ -1093,22 +1119,25 @@ function setupPlay() {
     clueSecondsInput.value = String(settings.clue);
     guessSecondsInput.value = String(settings.guess);
     fontSizeInput.value = fontSizePreset;
-    priorityTeamInput.replaceChildren(...config.activeTeams.map((team) => new Option(TEAMS[team].name, team)));
-    priorityTeamInput.value = config.firstTeam;
+    fillTeamOrderSelect(teamOrderInput, config.activeTeams, config.turnOrder);
   }
 
-  function applyTeamPriority(nextFirstTeam) {
-    if (!config.activeTeams.includes(nextFirstTeam) || nextFirstTeam === config.firstTeam) return false;
+  function applyTeamOrder(nextTurnOrder) {
+    const normalizedOrder = Array.isArray(nextTurnOrder) ? nextTurnOrder : [];
+    if (teamOrderValue(normalizedOrder) === teamOrderValue(config.turnOrder)) return false;
+    if (normalizedOrder.length !== config.activeTeams.length
+      || normalizedOrder.some((team, index) => !config.activeTeams.includes(team) || normalizedOrder.indexOf(team) !== index)) {
+      throw new Error("队伍顺序必须包含每个参赛队伍一次。");
+    }
     const teamCounts = { ...config.teamCounts };
-    if (config.teamCount === 2) {
-      const previousFirstTeam = config.firstTeam;
-      [teamCounts[previousFirstTeam], teamCounts[nextFirstTeam]] = [teamCounts[nextFirstTeam], teamCounts[previousFirstTeam]];
+    if (config.teamCount === 2 && normalizedOrder[0] !== config.firstTeam) {
+      [teamCounts[config.firstTeam], teamCounts[normalizedOrder[0]]] = [teamCounts[normalizedOrder[0]], teamCounts[config.firstTeam]];
     }
     config = createGameConfig({
       teamCount: config.teamCount,
       mode: config.mode,
       gridSize: config.gridSize,
-      firstTeam: nextFirstTeam,
+      turnOrder: normalizedOrder,
       teamCounts,
       whiteCount: config.whiteCount,
       blackCount: config.blackCount
@@ -1226,16 +1255,16 @@ function setupPlay() {
     event.preventDefault();
     const shouldResume = resumeTimerAfterSettings;
     resumeTimerAfterSettings = false;
-    const priorityChanged = applyTeamPriority(priorityTeamInput.value);
+    const orderChanged = applyTeamOrder(readTeamOrder(teamOrderInput));
     applyFontSizePreset(fontSizeInput.value);
     applyTimerSettings({
       prep: Number(prepMinutesInput.value) * 60,
       clue: Number(clueSecondsInput.value),
       guess: Number(guessSecondsInput.value)
-    }, shouldResume && !priorityChanged);
-    if (priorityChanged) {
+    }, shouldResume && !orderChanged);
+    if (orderChanged) {
       resetGame();
-      message.textContent = TEAMS[config.firstTeam].name + "已设为优先队伍；本局已重置，顺序为 " + config.turnOrder.map((team) => TEAMS[team].name).join(" → ") + "。";
+      message.textContent = "队伍顺序已设为 " + config.turnOrder.map((team) => TEAMS[team].name).join(" → ") + "；本局已重置。";
     }
     timerSettingsModal.hidden = true;
     timerSettingsButton.focus();
@@ -1394,7 +1423,7 @@ function setupPlay() {
   registerWebTool({
     name: "set_codenames_timer_settings",
     title: "设置游戏",
-    description: "设置三个计时阶段、界面字号和优先队伍。更改优先队伍会重置本局。",
+    description: "设置三个计时阶段、界面字号和完整队伍顺序。更改队伍顺序会重置本局。",
     inputSchema: {
       type: "object",
       properties: {
@@ -1402,7 +1431,12 @@ function setupPlay() {
         clueSeconds: { type: "integer", minimum: 5, maximum: 3600 },
         guessSeconds: { type: "integer", minimum: 5, maximum: 3600 },
         fontSize: { type: "string", enum: ["small", "standard", "large", "huge"] },
-        priorityTeam: { type: "string", enum: config.activeTeams }
+        teamOrder: {
+          type: "array",
+          items: { type: "string", enum: config.activeTeams },
+          minItems: config.activeTeams.length,
+          maxItems: config.activeTeams.length
+        }
       },
       required: ["prepSeconds", "clueSeconds", "guessSeconds"],
       additionalProperties: false
@@ -1410,11 +1444,11 @@ function setupPlay() {
     annotations: { readOnlyHint: false, untrustedContentHint: false },
     execute(input) {
       const wasRunning = timerRunning;
-      const priorityChanged = input?.priorityTeam ? applyTeamPriority(input.priorityTeam) : false;
+      const orderChanged = input?.teamOrder ? applyTeamOrder(input.teamOrder) : false;
       if (input?.fontSize) applyFontSizePreset(input.fontSize);
-      applyTimerSettings({ prep: input?.prepSeconds, clue: input?.clueSeconds, guess: input?.guessSeconds }, wasRunning && !priorityChanged);
-      if (priorityChanged) resetGame();
-      return { ...timerSettings, fontSize: fontSizePreset, priorityTeam: config.firstTeam, turnOrder: config.turnOrder, timerPhase, timerRemaining };
+      applyTimerSettings({ prep: input?.prepSeconds, clue: input?.clueSeconds, guess: input?.guessSeconds }, wasRunning && !orderChanged);
+      if (orderChanged) resetGame();
+      return { ...timerSettings, fontSize: fontSizePreset, turnOrder: config.turnOrder, timerPhase, timerRemaining };
     }
   });
 

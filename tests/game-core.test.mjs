@@ -83,6 +83,17 @@ test("rankings use competition ranking and skip places after ties", () => {
   );
 });
 
+test("teams eliminated by black cards are always assigned last place", () => {
+  assert.deepEqual(
+    calculatePlacements(
+      { red: 3, yellow: 4 },
+      ["red", "yellow", "blue", "green"],
+      { blue: 1, green: 3 }
+    ),
+    { red: 1, yellow: 2, blue: 4, green: 4 }
+  );
+});
+
 test("starting answers carries the unused clue seconds into the next minute", () => {
   assert.equal(answerTimeWithCarry(30), 90);
   assert.equal(answerTimeWithCarry(17), 77);
@@ -135,6 +146,18 @@ test("every team-count mode defaults to the canonical red-first order", () => {
   assert.deepEqual(createGameConfig({ teamCount: 4, mode: "classic" }, "ANY-SEED").turnOrder, ["red", "yellow", "blue", "green"]);
 });
 
+test("a complete custom team order is preserved and determines the first team", () => {
+  const order = ["yellow", "green", "red", "blue"];
+  const config = createGameConfig({ teamCount: 4, mode: "classic", turnOrder: order }, "ORDER");
+  assert.deepEqual(config.turnOrder, order);
+  assert.equal(config.firstTeam, "yellow");
+
+  const duel = createGameConfig({ teamCount: 2, mode: "classic", turnOrder: ["blue", "red"] }, "DUEL-ORDER");
+  assert.deepEqual(duel.turnOrder, ["blue", "red"]);
+  assert.equal(duel.teamCounts.blue, 9);
+  assert.equal(duel.teamCounts.red, 8);
+});
+
 test("custom rules produce a deterministic dynamic grid", () => {
   const custom = createGameConfig({
     teamCount: 3,
@@ -163,7 +186,7 @@ test("custom rules reject allocations that do not fill the grid", () => {
   }, "INVALID"), /不一致/);
 });
 
-test("configured turn order starts from the seeded first team", () => {
+test("turn advancement follows the configured team order", () => {
   const order = ["blue", "red"];
   assert.deepEqual(nextActiveTurn("blue", order, 1, order), { team: "red", round: 1 });
   assert.deepEqual(nextActiveTurn("red", order, 1, order), { team: "blue", round: 2 });

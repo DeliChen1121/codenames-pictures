@@ -114,16 +114,27 @@ export function resolveFirstTeam(rawSeed, activeTeams, requestedTeam = "red") {
   return safeTeams[0];
 }
 
+export function resolveTurnOrder(activeTeams, requestedOrder, requestedFirstTeam = "red") {
+  const safeTeams = activeTeams.filter((team) => TEAM_ORDER.includes(team));
+  if (Array.isArray(requestedOrder)
+    && requestedOrder.length === safeTeams.length
+    && requestedOrder.every((team, index) => safeTeams.includes(team) && requestedOrder.indexOf(team) === index)) {
+    return [...requestedOrder];
+  }
+  const firstTeam = resolveFirstTeam("", safeTeams, requestedFirstTeam);
+  return [
+    ...safeTeams.slice(safeTeams.indexOf(firstTeam)),
+    ...safeTeams.slice(0, safeTeams.indexOf(firstTeam))
+  ];
+}
+
 export function createGameConfig(options = {}, rawSeed = "MVP2026") {
   const activeTeams = teamsForCount(options.teamCount);
   const teamCount = activeTeams.length;
   const requestedMode = GAME_MODES.includes(options.mode) ? options.mode : "custom";
   const preset = getGamePreset(teamCount, requestedMode === "custom" ? "classic" : requestedMode);
-  const firstTeam = resolveFirstTeam(rawSeed, activeTeams, options.firstTeam);
-  const turnOrder = [
-    ...activeTeams.slice(activeTeams.indexOf(firstTeam)),
-    ...activeTeams.slice(0, activeTeams.indexOf(firstTeam))
-  ];
+  const turnOrder = resolveTurnOrder(activeTeams, options.turnOrder, options.firstTeam);
+  const firstTeam = turnOrder[0];
 
   const suppliedCounts = options.teamCounts || {};
   const hasEverySuppliedCount = activeTeams.every((team) => integer(suppliedCounts[team], -1) >= 1);
@@ -170,6 +181,7 @@ export function configSignature(config) {
     "m" + config.mode,
     "g" + config.gridSize,
     "f" + config.firstTeam,
+    "o" + config.turnOrder.map((team) => team[0]).join(""),
     ...config.activeTeams.map((team) => team[0] + config.teamCounts[team]),
     "w" + config.whiteCount,
     "k" + config.blackCount
@@ -257,7 +269,7 @@ export function roleCounts(cards) {
   }, {});
 }
 
-export function calculatePlacements(completionRounds, teamNames = TEAM_ORDER) {
+export function calculatePlacements(completionRounds, teamNames = TEAM_ORDER, eliminatedTeams = {}) {
   const finished = teamNames
     .filter((team) => Number.isInteger(completionRounds[team]))
     .map((team) => ({ team, round: completionRounds[team] }));
@@ -265,6 +277,10 @@ export function calculatePlacements(completionRounds, teamNames = TEAM_ORDER) {
 
   for (const entry of finished) {
     placements[entry.team] = finished.filter((other) => other.round < entry.round).length + 1;
+  }
+
+  for (const team of teamNames) {
+    if (!placements[team] && Number.isInteger(eliminatedTeams[team])) placements[team] = teamNames.length;
   }
 
   return placements;

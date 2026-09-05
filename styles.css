@@ -2089,6 +2089,10 @@ body[data-view="start"] {
   font-weight: 800;
 }
 
+#settings-team-order {
+  min-width: 12.5rem;
+}
+
 /* Final score celebration */
 
 .final-results {
