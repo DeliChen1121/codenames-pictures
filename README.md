@@ -36,6 +36,16 @@ npm run dev
 
 然后打开 `http://localhost:4173/`。玩家题板在 `/play.html?game=局号`，复制按钮会生成对应的 `/master.html` 队长答案链接。
 
+## 制作离线压缩包
+
+```bash
+npm run build:offline
+```
+
+生成文件位于 `offline-dist/codenames-pictures-offline.zip`。把这个压缩包发给其他人后，只需完整解压，再双击其中的 `打开游戏.html`（或 `index.html`）即可在浏览器中离线运行，无需安装、启动服务器或连接网络。
+
+离线版内置全部 280 张图片。不要单独移动 HTML 文件或删除 `images` 文件夹；队长可在游戏页面点击“打开队长答案窗口”，并把该窗口放在另一块屏幕或仅队长可见的设备上。
+
 ## 图片来源
 
 项目已在 `public/images/cards/` 保存原题库的 280 张 `card-N.jpg` 图片。程序优先加载这些本地文件；某张本地文件不存在时，才回退到原项目的 GitHub Pages 地址。

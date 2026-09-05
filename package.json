@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "sh scripts/build.sh",
+    "build:offline": "sh scripts/build-offline.sh",
     "dev": "python3 -m http.server 4173 --directory dist",
     "test": "node --test tests/*.test.mjs"
   }

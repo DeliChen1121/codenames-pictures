@@ -28,9 +28,50 @@ const timerPresets = {
   guess: { label: "当前队伍答题" }
 };
 
+function storageGet(key) {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function storageSet(key, value) {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function storageRemove(key) {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    // Local files can run even when a browser disables persistent storage.
+  }
+}
+
+function copyText(text) {
+  if (window.location.protocol !== "file:" && navigator.clipboard?.writeText) {
+    return navigator.clipboard.writeText(text);
+  }
+  const field = document.createElement("textarea");
+  field.value = text;
+  field.setAttribute("readonly", "");
+  field.style.position = "fixed";
+  field.style.opacity = "0";
+  document.body.append(field);
+  field.select();
+  const copied = document.execCommand("copy");
+  field.remove();
+  return copied ? Promise.resolve() : Promise.reject(new Error("copy failed"));
+}
+
 function loadFontSizePreset() {
   try {
-    const saved = localStorage.getItem(FONT_SIZE_KEY);
+    const saved = storageGet(FONT_SIZE_KEY);
     return Object.prototype.hasOwnProperty.call(FONT_SIZE_PRESETS, saved) ? saved : "huge";
   } catch {
     return "huge";
@@ -43,7 +84,7 @@ function applyFontSizePreset(preset, persist = true) {
   document.body.dataset.fontSize = fontSizePreset;
   if (persist) {
     try {
-      localStorage.setItem(FONT_SIZE_KEY, fontSizePreset);
+      storageSet(FONT_SIZE_KEY, fontSizePreset);
     } catch {
       // The size still applies for the current session.
     }
@@ -169,6 +210,7 @@ function imageSource(imageId) {
 }
 
 function fallbackImageSource(imageId) {
+  if (window.location.protocol === "file:") return imageSource(imageId);
   return "https://samdemaeyer.github.io/codenames-pictures/images/cards/card-" + imageId + ".jpg";
 }
 
@@ -430,6 +472,7 @@ function setupPlay() {
   const gameCodeLabel = document.querySelector("#game-code-label");
   const gameModeLabel = document.querySelector("#game-mode-label");
   const copyMasterButton = document.querySelector("#copy-master-link");
+  const openMasterWindow = document.querySelector("#open-master-window");
   const copyMasterFeedback = document.querySelector("#copy-master-feedback");
   const gameLayout = document.querySelector(".game-layout");
   const sidebarResizer = document.querySelector("#sidebar-resizer");
@@ -458,7 +501,7 @@ function setupPlay() {
 
   function loadTimerSettings() {
     try {
-      const stored = JSON.parse(localStorage.getItem(timerSettingsKey) || "null");
+      const stored = JSON.parse(storageGet(timerSettingsKey) || "null");
       if (!stored) return { ...DEFAULT_TIMER_SECONDS };
       return {
         prep: validTimerSeconds(stored.prep, DEFAULT_TIMER_SECONDS.prep, 15),
@@ -466,7 +509,7 @@ function setupPlay() {
         guess: validTimerSeconds(stored.guess, DEFAULT_TIMER_SECONDS.guess)
       };
     } catch {
-      localStorage.removeItem(timerSettingsKey);
+      storageRemove(timerSettingsKey);
       return { ...DEFAULT_TIMER_SECONDS };
     }
   }
@@ -476,7 +519,7 @@ function setupPlay() {
   }
 
   function saveState() {
-    localStorage.setItem(stateKey(), JSON.stringify({
+    storageSet(stateKey(), JSON.stringify({
       version: 4,
       revealed: [...revealed],
       currentTeam,
@@ -506,7 +549,7 @@ function setupPlay() {
     winnerTeam = null;
     imageRevision = 0;
     try {
-      const stored = JSON.parse(localStorage.getItem(stateKey()) || "null");
+      const stored = JSON.parse(storageGet(stateKey()) || "null");
       if (!stored || stored.version !== 4) return false;
       if (Array.isArray(stored.revealed)) {
         revealed = new Set(stored.revealed.filter((index) => Number.isInteger(index) && index >= 0 && index < config.cardCount));
@@ -519,7 +562,7 @@ function setupPlay() {
       if (Number.isInteger(stored.imageRevision) && stored.imageRevision >= 0) imageRevision = stored.imageRevision;
       return true;
     } catch {
-      localStorage.removeItem(stateKey());
+      storageRemove(stateKey());
       return false;
     }
   }
@@ -654,6 +697,8 @@ function setupPlay() {
     viewResultsButton.hidden = !finished;
     gameCodeLabel.textContent = seed;
     gameModeLabel.textContent = gameModeSummary(config) + " · " + TEAMS[config.firstTeam].short + "先";
+    openMasterWindow.hidden = window.location.protocol !== "file:";
+    openMasterWindow.href = masterUrl(seed, imageRevision, layoutRevision, config).href;
     renderTeams();
     updateBoardAvailability();
   }
@@ -1014,7 +1059,7 @@ function setupPlay() {
   async function copyMasterLink() {
     const url = masterUrl(seed, imageRevision, layoutRevision, config).href;
     try {
-      await navigator.clipboard.writeText(url);
+      await copyText(url);
       copyMasterFeedback.textContent = "队长答案链接已复制";
       copyMasterButton.textContent = "已复制";
       window.setTimeout(() => {
@@ -1068,7 +1113,7 @@ function setupPlay() {
 
   function applyTimerSettings(nextSettings, shouldResume = false) {
     timerSettings = normalizeTimerSettings(nextSettings);
-    localStorage.setItem(timerSettingsKey, JSON.stringify(timerSettings));
+    storageSet(timerSettingsKey, JSON.stringify(timerSettings));
     configureTimer(timerPhase, timerSettings[timerPhase], shouldResume && !gameIsFinished());
     message.textContent = "设置已更新：字号" + FONT_SIZE_NAMES[fontSizePreset] + "，开场 " + formatTime(timerSettings.prep) + "，队长 " + formatTime(timerSettings.clue) + "，答题 " + formatTime(timerSettings.guess) + "。";
   }
@@ -1102,12 +1147,12 @@ function setupPlay() {
     sidebarResizer.setAttribute("aria-valuemin", String(bounds.min));
     sidebarResizer.setAttribute("aria-valuemax", String(bounds.max));
     sidebarResizer.setAttribute("aria-valuenow", String(width));
-    if (persist) localStorage.setItem(sidebarWidthKey, String(width));
+    if (persist) storageSet(sidebarWidthKey, String(width));
     return width;
   }
 
   function setupSidebarResize() {
-    setSidebarWidth(Number(localStorage.getItem(sidebarWidthKey)) || turnConsole.getBoundingClientRect().width, false);
+    setSidebarWidth(Number(storageGet(sidebarWidthKey)) || turnConsole.getBoundingClientRect().width, false);
 
     sidebarResizer.addEventListener("pointerdown", (event) => {
       if (window.innerWidth <= 900) return;
