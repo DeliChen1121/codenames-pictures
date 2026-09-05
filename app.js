@@ -18,10 +18,10 @@ import {
 
 const view = document.body.dataset.view;
 const DEFAULT_TIMER_SECONDS = Object.freeze({ prep: 120, clue: 30, guess: 60 });
-const FONT_SIZE_KEY = "codenames-four-teams:font-size-v2";
-const DEFAULT_FONT_SIZE_PRESET = "standard";
-const FONT_SIZE_PRESETS = Object.freeze({ standard: 15, large: 18, huge: 21, giant: 24 });
-const FONT_SIZE_NAMES = Object.freeze({ standard: "标准", large: "大", huge: "超大", giant: "特大" });
+const FONT_SIZE_KEY = "codenames-four-teams:font-size-v3";
+const DEFAULT_FONT_SIZE_PRESET = "large";
+const FONT_SIZE_PRESETS = Object.freeze({ small: 13, standard: 14, large: 15, huge: 18 });
+const FONT_SIZE_NAMES = Object.freeze({ small: "小", standard: "标准", large: "大", huge: "超大" });
 let fontSizePreset = loadFontSizePreset();
 const timerPresets = {
   prep: { label: "全体队长思考" },
@@ -435,7 +435,7 @@ function setupMaster() {
 
 function setupPlay() {
   const timerSettingsKey = "codenames-four-teams:timer-settings-v1";
-  const sidebarWidthKey = "codenames-four-teams:sidebar-width-v1";
+  const sidebarWidthKey = "codenames-four-teams:sidebar-width-v2";
   let timerSettings = loadTimerSettings();
   let seed = getSeedFromUrl() || createGameCode();
   let imageRevision = getImageRevisionFromUrl() ?? 0;
@@ -1432,7 +1432,7 @@ function setupPlay() {
         prepSeconds: { type: "integer", minimum: 15, maximum: 3600 },
         clueSeconds: { type: "integer", minimum: 5, maximum: 3600 },
         guessSeconds: { type: "integer", minimum: 5, maximum: 3600 },
-        fontSize: { type: "string", enum: ["standard", "large", "huge", "giant"] }
+        fontSize: { type: "string", enum: ["small", "standard", "large", "huge"] }
       },
       required: ["prepSeconds", "clueSeconds", "guessSeconds"],
       additionalProperties: false

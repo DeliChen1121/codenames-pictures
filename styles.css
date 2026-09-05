@@ -1863,7 +1863,7 @@ body.is-resizing-sidebar {
 /* Larger live controls */
 
 .game-layout {
-  --sidebar-width: clamp(24rem, 31vw, 30rem);
+  --sidebar-width: clamp(23rem, 28vw, 28rem);
 }
 
 .host-sidebar {
@@ -1897,30 +1897,31 @@ body.is-resizing-sidebar {
 }
 
 .host-sidebar .timer {
-  gap: 0.7rem;
-  padding: 0.75rem 0.8rem;
+  grid-template-columns: minmax(4.7rem, 1fr) auto;
+  gap: 0.5rem;
+  padding: 0.58rem 0.65rem;
 }
 
 .timer-copy span {
-  font-size: 0.78rem;
+  font-size: 0.72rem;
 }
 
 .host-sidebar .timer-copy strong {
-  margin-top: 0.12rem;
-  font-size: clamp(2.65rem, 3.4vw, 3.35rem);
+  margin-top: 0.08rem;
+  font-size: clamp(2rem, 2.35vw, 2.4rem);
 }
 
 .host-sidebar .timer-toggle,
 .host-sidebar .timer-skip {
-  min-width: 5.1rem;
-  min-height: 2.75rem;
-  padding-inline: 0.65rem;
-  font-size: 0.88rem;
+  min-width: 4.3rem;
+  min-height: 2.35rem;
+  padding-inline: 0.5rem;
+  font-size: 0.78rem;
 }
 
 .host-sidebar .icon-button {
-  width: 2.75rem;
-  min-height: 2.75rem;
+  width: 2.35rem;
+  min-height: 2.35rem;
 }
 
 .button-answer {
