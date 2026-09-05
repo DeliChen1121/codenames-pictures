@@ -18,9 +18,10 @@ import {
 
 const view = document.body.dataset.view;
 const DEFAULT_TIMER_SECONDS = Object.freeze({ prep: 120, clue: 30, guess: 60 });
-const FONT_SIZE_KEY = "codenames-four-teams:font-size-v1";
-const FONT_SIZE_PRESETS = Object.freeze({ large: 18, huge: 21, giant: 24 });
-const FONT_SIZE_NAMES = Object.freeze({ large: "大", huge: "超大", giant: "特大" });
+const FONT_SIZE_KEY = "codenames-four-teams:font-size-v2";
+const DEFAULT_FONT_SIZE_PRESET = "standard";
+const FONT_SIZE_PRESETS = Object.freeze({ standard: 16, large: 18, huge: 21, giant: 24 });
+const FONT_SIZE_NAMES = Object.freeze({ standard: "标准", large: "大", huge: "超大", giant: "特大" });
 let fontSizePreset = loadFontSizePreset();
 const timerPresets = {
   prep: { label: "全体队长思考" },
@@ -72,14 +73,14 @@ function copyText(text) {
 function loadFontSizePreset() {
   try {
     const saved = storageGet(FONT_SIZE_KEY);
-    return Object.prototype.hasOwnProperty.call(FONT_SIZE_PRESETS, saved) ? saved : "huge";
+    return Object.prototype.hasOwnProperty.call(FONT_SIZE_PRESETS, saved) ? saved : DEFAULT_FONT_SIZE_PRESET;
   } catch {
-    return "huge";
+    return DEFAULT_FONT_SIZE_PRESET;
   }
 }
 
 function applyFontSizePreset(preset, persist = true) {
-  fontSizePreset = Object.prototype.hasOwnProperty.call(FONT_SIZE_PRESETS, preset) ? preset : "huge";
+  fontSizePreset = Object.prototype.hasOwnProperty.call(FONT_SIZE_PRESETS, preset) ? preset : DEFAULT_FONT_SIZE_PRESET;
   document.documentElement.style.fontSize = FONT_SIZE_PRESETS[fontSizePreset] + "px";
   document.body.dataset.fontSize = fontSizePreset;
   if (persist) {
@@ -1246,7 +1247,7 @@ function setupPlay() {
   document.querySelector("#timer-settings-close").addEventListener("click", closeTimerSettings);
   document.querySelector("#timer-settings-defaults").addEventListener("click", () => {
     fillTimerSettingsForm(DEFAULT_TIMER_SECONDS);
-    fontSizeInput.value = "huge";
+    fontSizeInput.value = DEFAULT_FONT_SIZE_PRESET;
   });
   timerSettingsModal.addEventListener("click", (event) => {
     if (event.target === timerSettingsModal) closeTimerSettings();
@@ -1431,7 +1432,7 @@ function setupPlay() {
         prepSeconds: { type: "integer", minimum: 15, maximum: 3600 },
         clueSeconds: { type: "integer", minimum: 5, maximum: 3600 },
         guessSeconds: { type: "integer", minimum: 5, maximum: 3600 },
-        fontSize: { type: "string", enum: ["large", "huge", "giant"] }
+        fontSize: { type: "string", enum: ["standard", "large", "huge", "giant"] }
       },
       required: ["prepSeconds", "clueSeconds", "guessSeconds"],
       additionalProperties: false

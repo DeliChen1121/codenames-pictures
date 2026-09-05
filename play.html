@@ -40,7 +40,7 @@
               <h1 id="current-team-name">全体队长准备</h1>
               <div class="turn-meta">
                 <span class="round-label" id="round-label">准备阶段</span>
-                <button class="settings-button" id="timer-settings" type="button" aria-label="时间设置" title="时间设置">⚙</button>
+                <button class="settings-button" id="timer-settings" type="button" aria-label="游戏设置" title="游戏设置：时间与字体">⚙</button>
               </div>
             </div>
             <p id="phase-instruction">所有队长一起查看答案；队友只看左侧图片。</p>
@@ -88,13 +88,13 @@
       <form class="settings-panel" id="timer-settings-form" role="dialog" aria-modal="true" aria-labelledby="timer-settings-title">
         <div class="settings-heading">
           <div>
-            <p class="eyebrow">TIMER SETTINGS</p>
-            <h2 id="timer-settings-title">时间安排</h2>
+            <p class="eyebrow">GAME SETTINGS</p>
+            <h2 id="timer-settings-title">游戏设置</h2>
           </div>
-          <button class="settings-close" id="timer-settings-close" type="button" aria-label="关闭时间设置">×</button>
+          <button class="settings-close" id="timer-settings-close" type="button" aria-label="关闭游戏设置">×</button>
         </div>
 
-        <p class="settings-help">保存后会应用新的界面字号，并按新时间重新开始当前阶段。</p>
+        <p class="settings-help">可调整界面字号与三个阶段的时间；保存后会按新时间重新开始当前阶段。</p>
 
         <label class="time-setting" for="settings-prep-minutes">
           <span><strong>开场准备</strong><small>所有队长共同查看答案</small></span>
@@ -115,8 +115,9 @@
           <span><strong>界面字体</strong><small>同时放大按钮与主持人控制区</small></span>
           <span class="time-input">
             <select id="settings-font-size">
+              <option value="standard">标准（默认）</option>
               <option value="large">大</option>
-              <option value="huge">超大（默认）</option>
+              <option value="huge">超大</option>
               <option value="giant">特大</option>
             </select>
           </span>
@@ -124,7 +125,7 @@
 
         <div class="settings-actions">
           <button class="text-button" id="timer-settings-defaults" type="button">恢复默认</button>
-          <button class="button button-primary" type="submit">保存时间安排</button>
+          <button class="button button-primary" type="submit">保存设置</button>
         </div>
       </form>
     </div>
