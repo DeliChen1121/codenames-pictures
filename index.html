@@ -10,7 +10,7 @@
   </head>
   <body data-view="start">
     <main class="start-shell">
-      <section class="start-card" aria-labelledby="start-title">
+      <section class="start-card" id="setup-card" aria-labelledby="start-title">
         <p class="eyebrow">CODENAMES · PICTURES</p>
         <div class="team-spectrum" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
         <h1 id="start-title">代号：图像</h1>
@@ -51,7 +51,6 @@
 
               <div class="advanced-grid">
                 <label><span>方格边长</span><input id="custom-grid-size" type="number" min="3" max="8" step="1" required /></label>
-                <label><span>队伍顺序</span><select id="custom-team-order"><option value="red,yellow,blue,green">红 → 黄 → 蓝 → 绿</option></select></label>
                 <label><span>白色中立</span><input id="custom-white-count" type="number" min="0" max="64" step="1" required /></label>
                 <label><span>黑色刺客</span><input id="custom-black-count" type="number" min="0" max="64" step="1" required /></label>
               </div>
@@ -68,6 +67,21 @@
           </div>
 
           <button class="button button-primary start-button" id="start-game" type="submit">开始游戏 <span aria-hidden="true">→</span></button>
+        </form>
+      </section>
+
+      <section class="start-card order-card" id="order-card" aria-labelledby="order-title" hidden>
+        <p class="eyebrow">CODENAMES · PICTURES</p>
+        <div class="team-spectrum" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+        <h1 id="order-title">选择队伍顺序</h1>
+        <p class="start-lede" id="order-help">按住队伍卡片上下拖动调整顺序，也可使用箭头按钮或键盘上下键。排在第一位的队伍先开始。</p>
+        <form id="order-setup" class="order-setup">
+          <ol class="order-preview" id="order-preview" aria-label="本局队伍顺序" aria-live="polite"></ol>
+          <p class="order-summary" id="order-summary"></p>
+          <div class="order-actions">
+            <button class="button button-secondary" id="back-to-setup" type="button">返回设置</button>
+            <button class="button button-primary" id="confirm-start" type="submit">开始 <span aria-hidden="true">→</span></button>
+          </div>
         </form>
       </section>
     </main>

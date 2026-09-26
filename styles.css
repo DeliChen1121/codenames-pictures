@@ -2535,6 +2535,69 @@ body[data-view="start"] .start-button {
   .game-mode-pill { width: 100%; justify-content: center; }
 }
 
+.seed-dialog textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0.65rem;
+  background: #07111d;
+  color: white;
+  font: inherit;
+}
+.seed-dialog textarea:focus-visible { outline: 2px solid #8fc2ff; outline-offset: 2px; }
+button.game-code-pill { cursor: pointer; font-family: inherit; gap: 0.5rem; }
+button.game-code-pill:hover { border-color: #8fc2ff; }
+.seed-dialog {
+  width: min(40rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  overflow: auto;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 1.2rem;
+  padding: 1.5rem;
+  background: #111e2f;
+  color: #f4f8fc;
+}
+.seed-dialog::backdrop { background: rgba(0, 0, 0, 0.75); }
+.seed-dialog p { color: #b8c8d9; line-height: 1.5; }
+.seed-dialog h2 { margin: 0; }
+.seed-dialog textarea { display: block; margin-top: 0.5rem; resize: vertical; overflow-wrap: anywhere; }
+.seed-dialog .seed-note { font-size: 0.85rem; margin-bottom: 0; }
+.start-card[hidden] { display: none; }
+body[data-view="start"] .order-card { max-width: 52rem; }
+.order-setup { display: grid; gap: 0.8rem; text-align: left; }
+.order-preview { display: grid; gap: 0.65rem; padding: 0; margin: 0; list-style: none; }
+.order-preview li {
+  display: grid;
+  grid-template-columns: auto 2.2rem 1fr auto auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--team-color);
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.035);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  position: relative;
+}
+.order-preview li.is-dragging { z-index: 2; cursor: grabbing; background: #21364c; box-shadow: 0 10px 24px #0008; outline: 2px solid var(--team-color); }
+.order-drag-handle { color: var(--muted); font-size: 1.5rem; }
+.order-move-actions { display: flex; gap: 0.25rem; }
+.order-move-actions button { width: 2.4rem; height: 2.4rem; border: 1px solid var(--line); border-radius: 0.5rem; color: var(--ink); background: #07111d; cursor: pointer; }
+.order-move-actions button:disabled { opacity: 0.25; cursor: default; }
+@media (max-width: 480px) {
+  .order-preview li { grid-template-columns: auto auto 1fr auto; gap: 0.5rem; padding: 0.65rem; }
+  .order-preview li > small { grid-column: 3; font-size: 0.78rem; }
+  .order-move-actions { grid-column: 4; grid-row: 1 / 3; }
+}
+.order-position { color: var(--team-color); font-size: 1.3rem; font-weight: 900; }
+.order-preview strong { font-size: 1.15rem; }
+.order-preview small, .order-summary { color: var(--muted); }
+.order-summary { margin: 0; text-align: center; }
+.order-actions { display: grid; grid-template-columns: 1fr 2fr; gap: 0.75rem; }
+
 /* Keep the complete setup visible in one desktop viewport. */
 
 @media (min-width: 761px) {

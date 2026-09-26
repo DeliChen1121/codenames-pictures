@@ -18,7 +18,7 @@
 
         <div class="board-toolbar" aria-label="题板工具">
           <span class="game-mode-pill" id="game-mode-label">—</span>
-          <span class="game-code-pill">局号 <strong id="game-code-label">—</strong></span>
+          <button class="game-code-pill" id="show-seed" type="button" title="复制种子或输入种子切换题板">种子 <strong id="game-code-label">—</strong><span aria-hidden="true">⧉</span></button>
           <button class="button button-quiet" id="refresh-images" type="button">换图片</button>
           <button class="button button-quiet" id="refresh-layout" type="button">换分布</button>
           <a class="button button-secondary" id="open-master-window" href="./master.html" target="_blank" rel="noopener" hidden>打开队长答案窗口</a>
@@ -149,6 +149,22 @@
         <button class="button button-primary" id="dismiss-results" type="button">查看全部答案</button>
       </section>
     </div>
+
+    <dialog class="seed-dialog" id="seed-dialog" aria-labelledby="seed-title">
+      <div class="settings-heading">
+        <h2 id="seed-title">当前题板种子</h2>
+        <button class="settings-close" id="close-seed" type="button" aria-label="关闭种子窗口">×</button>
+      </div>
+      <p id="seed-dialog-help">可复制当前种子，也可直接粘贴其他种子，按回车切换题板和队长答案。短局号沿用当前规则；完整种子会带入对应规则。</p>
+      <label for="board-seed-value">局号 / 完整种子</label>
+      <textarea id="board-seed-value" rows="3" maxlength="200" spellcheck="false" aria-describedby="seed-dialog-help seed-copy-feedback"></textarea>
+      <p id="seed-copy-feedback" role="status" aria-live="polite"></p>
+      <div class="settings-actions">
+        <button class="button button-secondary" id="copy-seed" type="button">复制当前种子</button>
+        <button class="button button-primary" id="apply-seed" type="button">切换题板 ↵</button>
+      </div>
+      <p class="seed-note">切换后从全体队长准备阶段重新开始，翻牌与排名清零。换图片或换分布后，请重新复制种子。</p>
+    </dialog>
 
     <script type="module" src="./app.js"></script>
   </body>

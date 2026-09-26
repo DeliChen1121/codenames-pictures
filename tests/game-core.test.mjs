@@ -7,17 +7,64 @@ import {
   answerTimeWithCarry,
   buildGame,
   calculatePlacements,
+  createBoardSeed,
   createGameConfig,
   getGamePreset,
   nextActiveTurn,
   nextTeam,
   normalizeSeed,
+  parseBoardSeed,
   roleCounts,
   teamsForCount
 } from "../game-core.js";
 
 test("the same game code always produces the same board", () => {
   assert.deepEqual(buildGame("SPY2026"), buildGame("spy-2026"));
+});
+
+test("typed seeds trim whitespace, ignore case and start from the original board", () => {
+  assert.deepEqual(parseBoardSeed(" church2026 "), {
+    seed: "CHURCH2026", imageRevision: 0, layoutRevision: 0, config: null
+  });
+  assert.equal(parseBoardSeed("  "), null);
+  for (const teamCount of [2, 3, 4]) {
+    for (const mode of GAME_MODES) {
+      const { seed, imageRevision, layoutRevision } = parseBoardSeed(" church2026 ");
+      assert.deepEqual(buildGame(seed, imageRevision, layoutRevision, { teamCount, mode }),
+        buildGame("CHURCH2026", 0, 0, { teamCount, mode }));
+    }
+  }
+});
+
+test("portable seeds reproduce every preset after both types of refresh", () => {
+  for (const teamCount of [2, 3, 4]) {
+    for (const mode of GAME_MODES) {
+      const turnOrder = teamsForCount(teamCount).reverse();
+      const original = buildGame("CHURCH2026", 7, 3, { teamCount, mode, turnOrder });
+      const saved = parseBoardSeed(createBoardSeed(original).toLowerCase());
+      assert.deepEqual(buildGame(saved.seed, saved.imageRevision, saved.layoutRevision, saved.config), original);
+    }
+  }
+});
+
+test("portable seeds retain asymmetric custom rules and all team positions", () => {
+  const original = buildGame("CUSTOM", 5, 9, {
+    teamCount: 3, mode: "custom", gridSize: 4,
+    turnOrder: ["blue", "red", "yellow"],
+    teamCounts: { red: 3, yellow: 5, blue: 4 }, whiteCount: 4, blackCount: 0
+  });
+  const saved = parseBoardSeed(createBoardSeed(original));
+  assert.deepEqual(buildGame(saved.seed, saved.imageRevision, saved.layoutRevision, saved.config), original);
+});
+
+test("invalid seeds fail visibly instead of silently generating a different game", () => {
+  const valid = createBoardSeed(buildGame("TEST", 2, 3, { teamCount: 4, mode: "classic" }));
+  for (const input of ["中文", "TOOLONG12345", "AB!CD", "CNP2:TEST", "CNP1:TEST",
+    valid.replace(":rybg:", ":rrbg:"), valid.replace(":5,5,5,5:", ":5,5,5:"),
+    valid.replace(":2:3:", ":-1:3:"), valid.replace(":2:3:", ":9007199254740992:3:"),
+    valid.replace(":classic:", ":unknown:"), valid.replace(":4:1", ":3:1")]) {
+    assert.throws(() => parseBoardSeed(input));
+  }
 });
 
 test("refreshing pictures does not change the hidden color layout", () => {

@@ -8,11 +8,13 @@ import {
   buildGame,
   calculatePlacements,
   configSignature,
+  createBoardSeed,
   createGameConfig,
   createGameCode,
   getGamePreset,
   nextActiveTurn,
   normalizeSeed,
+  parseBoardSeed,
   teamsForCount
 } from "./game-core.js";
 
@@ -54,20 +56,33 @@ function storageRemove(key) {
   }
 }
 
-function copyText(text) {
-  if (window.location.protocol !== "file:" && navigator.clipboard?.writeText) {
-    return navigator.clipboard.writeText(text);
+async function copyText(text) {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch {
+      // Some browsers deny clipboard access for local files; try selection copying.
+    }
   }
+  const previousFocus = document.activeElement;
   const field = document.createElement("textarea");
   field.value = text;
   field.setAttribute("readonly", "");
   field.style.position = "fixed";
   field.style.opacity = "0";
-  document.body.append(field);
-  field.select();
-  const copied = document.execCommand("copy");
-  field.remove();
-  return copied ? Promise.resolve() : Promise.reject(new Error("copy failed"));
+  field.style.fontSize = "16px";
+  // showModal makes the rest of the document inert, including body-level inputs.
+  (document.querySelector("dialog[open]") || document.body).append(field);
+  try {
+    field.focus({ preventScroll: true });
+    field.select();
+    field.setSelectionRange(0, field.value.length);
+    if (!document.execCommand("copy")) throw new Error("copy failed");
+  } finally {
+    field.remove();
+    previousFocus?.focus({ preventScroll: true });
+  }
 }
 
 function loadFontSizePreset() {
@@ -207,6 +222,7 @@ function readTeamOrder(select) {
 
 function setGameInUrl(seed, imageRevision = 0, layoutRevision = 0, config) {
   const url = new URL(window.location.href);
+  url.searchParams.delete("fresh");
   url.searchParams.set("game", seed);
   setRevisionInUrl(url, "deck", imageRevision);
   setRevisionInUrl(url, "layout", layoutRevision);
@@ -278,12 +294,17 @@ function masterPictureCard(card) {
 function setupStart() {
   const form = document.querySelector("#game-setup");
   const startButton = document.querySelector("#start-game");
-  const teamOrderSelect = document.querySelector("#custom-team-order");
   const teamCountsContainer = document.querySelector("#custom-team-counts");
   const gridSizeInput = document.querySelector("#custom-grid-size");
   const whiteCountInput = document.querySelector("#custom-white-count");
   const blackCountInput = document.querySelector("#custom-black-count");
   const allocationStatus = document.querySelector("#allocation-status");
+  const setupCard = document.querySelector("#setup-card");
+  const orderCard = document.querySelector("#order-card");
+  const orderForm = document.querySelector("#order-setup");
+  const orderPreview = document.querySelector("#order-preview");
+  let setupTurnOrder = teamsForCount(4);
+  let orderDrag = null;
   let isCustom = false;
 
   function selectedTeamCount() {
@@ -311,8 +332,9 @@ function setupStart() {
 
   function rebuildTeamOrderOptions() {
     const activeTeams = teamsForCount(selectedTeamCount());
-    const previous = readTeamOrder(teamOrderSelect);
-    fillTeamOrderSelect(teamOrderSelect, activeTeams, previous);
+    if (setupTurnOrder.length !== activeTeams.length || setupTurnOrder.some((team) => !activeTeams.includes(team))) {
+      setupTurnOrder = activeTeams;
+    }
   }
 
   function countInput(label, value, key) {
@@ -373,7 +395,7 @@ function setupStart() {
       teamCount,
       mode: isCustom ? "custom" : selectedMode(),
       gridSize: Number(gridSizeInput.value),
-      turnOrder: readTeamOrder(teamOrderSelect),
+      turnOrder: setupTurnOrder,
       firstCount: countValues.first,
       secondCount: countValues.second,
       teamCounts: Object.fromEntries(teamsForCount(teamCount).map((team) => [team, countValues[team]])),
@@ -386,9 +408,135 @@ function setupStart() {
     if (!validateAllocation()) throw new Error("颜色牌数量还没有填满方格。");
     const seed = createGameCode();
     const config = readConfigForSeed(seed);
-    window.location.href = playUrl(seed, 0, 0, config).href;
+    const url = playUrl(seed, 0, 0, config);
+    // An explicit start replays the board from the beginning, not a saved result.
+    url.searchParams.set("fresh", "1");
+    window.location.href = url.href;
     return { gameCode: seed, config };
   }
+
+  function renderOrderPreview() {
+    const config = readConfigForSeed("");
+    orderPreview.replaceChildren(...config.turnOrder.map((team, index) => {
+      const item = document.createElement("li");
+      item.dataset.team = team;
+      item.tabIndex = 0;
+      item.setAttribute("aria-label", TEAMS[team].name + "，第 " + (index + 1) + " 位");
+      item.setAttribute("aria-describedby", "order-help");
+      item.style.setProperty("--team-color", TEAMS[team].color);
+      const position = document.createElement("span");
+      position.className = "order-position";
+      position.textContent = String(index + 1);
+      const name = document.createElement("strong");
+      name.textContent = TEAMS[team].name;
+      const detail = document.createElement("small");
+      detail.textContent = (index === 0 ? "先手 · " : "") + config.teamCounts[team] + " 张颜色牌";
+      const handle = document.createElement("span");
+      handle.className = "order-drag-handle";
+      handle.textContent = "⠿";
+      handle.setAttribute("aria-hidden", "true");
+      const actions = document.createElement("span");
+      actions.className = "order-move-actions";
+      for (const [direction, label, symbol] of [[-1, "上移", "↑"], [1, "下移", "↓"]]) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = symbol;
+        button.setAttribute("aria-label", label + TEAMS[team].name);
+        button.disabled = index + direction < 0 || index + direction >= config.turnOrder.length;
+        button.addEventListener("click", () => moveTeam(team, index + direction));
+        actions.append(button);
+      }
+      item.append(handle, position, name, detail, actions);
+      return item;
+    }));
+    document.querySelector("#order-summary").textContent = gameModeSummary(config);
+  }
+
+  function moveTeam(team, targetIndex) {
+    const fromIndex = setupTurnOrder.indexOf(team);
+    if (fromIndex < 0 || targetIndex < 0 || targetIndex >= setupTurnOrder.length || fromIndex === targetIndex) return;
+    setupTurnOrder.splice(fromIndex, 1);
+    setupTurnOrder.splice(targetIndex, 0, team);
+    renderOrderPreview();
+    orderPreview.querySelector('[data-team="' + team + '"]').focus({ preventScroll: true });
+  }
+
+  orderPreview.addEventListener("keydown", (event) => {
+    if (event.target.closest("button") || !["ArrowUp", "ArrowDown"].includes(event.key)) return;
+    const item = event.target.closest("li[data-team]");
+    if (!item) return;
+    event.preventDefault();
+    moveTeam(item.dataset.team, setupTurnOrder.indexOf(item.dataset.team) + (event.key === "ArrowUp" ? -1 : 1));
+  });
+  orderPreview.addEventListener("pointerdown", (event) => {
+    if (orderDrag || event.button !== 0 || event.target.closest("button")) return;
+    const item = event.target.closest("li[data-team]");
+    if (!item) return;
+    orderDrag = {
+      item, team: item.dataset.team, pointerId: event.pointerId,
+      startY: event.clientY, offsetY: event.clientY - item.getBoundingClientRect().top,
+      initialOrder: [...setupTurnOrder], dragging: false,
+      centers: [...orderPreview.children].map((row) => {
+        const rect = row.getBoundingClientRect();
+        return rect.top + rect.height / 2;
+      })
+    };
+    orderPreview.setPointerCapture(event.pointerId);
+  });
+  orderPreview.addEventListener("pointermove", (event) => {
+    if (!orderDrag || event.pointerId !== orderDrag.pointerId) return;
+    if (!orderDrag.dragging && Math.abs(event.clientY - orderDrag.startY) < 5) return;
+    event.preventDefault();
+    orderDrag.dragging = true;
+    orderDrag.item.classList.add("is-dragging");
+    const { centers, team, item } = orderDrag;
+    const targetIndex = centers.reduce((nearest, center, index) =>
+      Math.abs(center - event.clientY) < Math.abs(centers[nearest] - event.clientY) ? index : nearest, 0);
+    const fromIndex = setupTurnOrder.indexOf(team);
+    if (targetIndex !== fromIndex) {
+      setupTurnOrder.splice(fromIndex, 1);
+      setupTurnOrder.splice(targetIndex, 0, team);
+      const rows = new Map([...orderPreview.children].map((row) => [row.dataset.team, row]));
+      orderPreview.append(...setupTurnOrder.map((name) => rows.get(name)));
+    }
+    item.style.transform = "";
+    item.style.transform = "translateY(" + (event.clientY - orderDrag.offsetY - item.getBoundingClientRect().top) + "px)";
+  });
+  function finishOrderDrag(event) {
+    if (!orderDrag || event.pointerId !== orderDrag.pointerId) return;
+    const { item, initialOrder, pointerId, dragging } = orderDrag;
+    orderDrag = null;
+    if (event.type === "pointercancel" || event.type === "lostpointercapture") setupTurnOrder = initialOrder;
+    if (orderPreview.hasPointerCapture(pointerId)) orderPreview.releasePointerCapture(pointerId);
+    item.style.transform = "";
+    item.classList.remove("is-dragging");
+    if (dragging) {
+      renderOrderPreview();
+      orderPreview.querySelector('[data-team="' + item.dataset.team + '"]').focus({ preventScroll: true });
+    }
+  }
+  orderPreview.addEventListener("pointerup", finishOrderDrag);
+  orderPreview.addEventListener("pointercancel", finishOrderDrag);
+  orderPreview.addEventListener("lostpointercapture", finishOrderDrag);
+
+  function showOrderStep() {
+    if (!form.reportValidity() || !validateAllocation()) return;
+    renderOrderPreview();
+    setupCard.hidden = true;
+    orderCard.hidden = false;
+    orderPreview.firstElementChild.focus();
+    return { stage: "choose_team_order", turnOrder: [...setupTurnOrder] };
+  }
+
+  orderForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    startNewGame();
+  });
+  document.querySelector("#back-to-setup").addEventListener("click", () => {
+    orderCard.hidden = true;
+    setupCard.hidden = false;
+    startButton.focus();
+  });
 
   form.elements["team-count"].forEach((input) => input.addEventListener("change", () => {
     updateModeSummaries();
@@ -396,13 +544,13 @@ function setupStart() {
     applySelectedPreset();
   }));
   form.elements["game-mode"].forEach((input) => input.addEventListener("change", applySelectedPreset));
-  document.querySelector("#detailed-settings").addEventListener("input", (event) => {
-    if (event.target !== teamOrderSelect) isCustom = true;
+  document.querySelector("#detailed-settings").addEventListener("input", () => {
+    isCustom = true;
     validateAllocation();
   });
   form.addEventListener("submit", (event) => {
     event.preventDefault();
-    startNewGame();
+    showOrderStep();
   });
 
   updateModeSummaries();
@@ -412,12 +560,12 @@ function setupStart() {
   registerWebTool({
     name: "start_new_codenames_game",
     title: "开始新游戏",
-    description: "按开始页当前选择生成局号，并进入 2 至 4 队的主持人题板。",
+    description: "从开始页进入队伍顺序选择；确认顺序后再调用即可发牌开始新局。",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
     annotations: { readOnlyHint: false, untrustedContentHint: false },
     execute(input) {
       assertEmptyInput(input);
-      return startNewGame();
+      return orderCard.hidden ? showOrderStep() : startNewGame();
     }
   });
 }
@@ -497,6 +645,23 @@ function setupPlay() {
   const gameModeLabel = document.querySelector("#game-mode-label");
   const copyMasterButton = document.querySelector("#copy-master-link");
   const openMasterWindow = document.querySelector("#open-master-window");
+  let masterWindow = null;
+
+  function syncMasterWindow() {
+    if (!masterWindow || masterWindow.closed) return;
+    // Keep the answer window opened by this host on the exact same board.
+    masterWindow.location.href = masterUrl(seed, imageRevision, layoutRevision, config).href;
+  }
+
+  openMasterWindow.addEventListener("click", (event) => {
+    event.preventDefault();
+    if (!masterWindow || masterWindow.closed) {
+      masterWindow = window.open(masterUrl(seed, imageRevision, layoutRevision, config).href, "_blank");
+    } else {
+      syncMasterWindow();
+      masterWindow.focus();
+    }
+  });
   const copyMasterFeedback = document.querySelector("#copy-master-feedback");
   const timerSettingsButton = document.querySelector("#timer-settings");
   const timerSettingsModal = document.querySelector("#timer-settings-modal");
@@ -1058,6 +1223,7 @@ function setupPlay() {
     saveState();
     renderBoard();
     renderStatus();
+    syncMasterWindow();
     message.textContent = "表面图片已刷新；" + config.cardCount + " 个位置下方的答案颜色完全不变。";
   }
 
@@ -1078,6 +1244,7 @@ function setupPlay() {
     saveState();
     renderBoard();
     renderStatus();
+    syncMasterWindow();
     message.textContent = "隐藏颜色已重新分布，图片保持不变；请把新的队长答案链接发给队长。";
   }
 
@@ -1144,6 +1311,7 @@ function setupPlay() {
     }, seed);
     game = buildGame(seed, imageRevision, layoutRevision, config);
     setGameInUrl(seed, imageRevision, layoutRevision, config);
+    syncMasterWindow();
     return true;
   }
 
@@ -1452,6 +1620,70 @@ function setupPlay() {
     }
   });
 
+  const seedDialog = document.querySelector("#seed-dialog");
+  const seedValue = document.querySelector("#board-seed-value");
+  const seedFeedback = document.querySelector("#seed-copy-feedback");
+  document.querySelector("#show-seed").addEventListener("click", () => {
+    seedValue.value = createBoardSeed(game);
+    seedValue.setCustomValidity("");
+    seedValue.removeAttribute("aria-invalid");
+    seedFeedback.textContent = "";
+    seedDialog.showModal();
+    seedValue.focus();
+    seedValue.select();
+  });
+  document.querySelector("#close-seed").addEventListener("click", () => seedDialog.close());
+  seedValue.addEventListener("input", () => {
+    seedValue.setCustomValidity("");
+    seedValue.removeAttribute("aria-invalid");
+    seedFeedback.textContent = "";
+  });
+
+  function applyEnteredSeed() {
+    let nextGame;
+    try {
+      const entered = parseBoardSeed(seedValue.value);
+      if (!entered) throw new Error("请先输入局号或粘贴完整种子。");
+      nextGame = buildGame(entered.seed, entered.imageRevision, entered.layoutRevision, entered.config || config);
+    } catch (error) {
+      seedValue.setCustomValidity(error.message);
+      seedValue.setAttribute("aria-invalid", "true");
+      seedFeedback.textContent = error.message;
+      seedValue.reportValidity();
+      return;
+    }
+    seed = nextGame.seed;
+    config = nextGame.config;
+    layoutRevision = nextGame.layoutRevision;
+    storageRemove(stateKey());
+    load(seed, nextGame.imageRevision, layoutRevision);
+    saveState();
+    syncMasterWindow();
+    seedDialog.close();
+  }
+
+  document.querySelector("#apply-seed").addEventListener("click", applyEnteredSeed);
+  seedValue.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" || event.isComposing || event.keyCode === 229) return;
+    event.preventDefault();
+    applyEnteredSeed();
+  });
+  document.querySelector("#copy-seed").addEventListener("click", async () => {
+    const currentSeed = createBoardSeed(game);
+    try {
+      await copyText(currentSeed);
+      seedFeedback.textContent = "当前题板种子已复制，可在种子窗口粘贴并按回车使用。";
+    } catch {
+      seedValue.value = currentSeed;
+      seedValue.setCustomValidity("");
+      seedValue.removeAttribute("aria-invalid");
+      seedValue.focus();
+      seedValue.select();
+      seedFeedback.textContent = "请手动复制上方已选中的完整种子。";
+    }
+  });
+
+  if (new URLSearchParams(window.location.search).get("fresh") === "1") storageRemove(stateKey());
   load(seed, getImageRevisionFromUrl(), getLayoutRevisionFromUrl());
 }
 

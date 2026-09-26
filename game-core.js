@@ -50,6 +50,56 @@ export function normalizeSeed(value) {
     .slice(0, 10);
 }
 
+// Portable board seeds include every input to buildGame, never player progress.
+export function createBoardSeed(game) {
+  const { seed, imageRevision, layoutRevision, config } = game;
+  return [
+    "CNP1", seed, imageRevision, layoutRevision, config.teamCount, config.mode,
+    config.gridSize, config.turnOrder.map((team) => team[0]).join(""),
+    config.activeTeams.map((team) => config.teamCounts[team]).join(","),
+    config.whiteCount, config.blackCount
+  ].join(":");
+}
+
+export function parseBoardSeed(value) {
+  const text = String(value || "").trim();
+  if (!text) return null;
+  if (/^[a-z0-9]{1,10}$/i.test(text)) {
+    return { seed: normalizeSeed(text), imageRevision: 0, layoutRevision: 0, config: null };
+  }
+  if (!/^CNP1:/i.test(text)) {
+    throw new Error("局号请使用 1–10 位英文字母或数字；也可以粘贴游戏中复制的完整种子。");
+  }
+  try {
+    const parts = text.split(":");
+    if (parts.length !== 11 || !/^[a-z0-9]{1,10}$/i.test(parts[1])) throw new Error();
+    const number = (raw) => {
+      if (!/^\d+$/.test(raw) || !Number.isSafeInteger(Number(raw))) throw new Error();
+      return Number(raw);
+    };
+    const seed = normalizeSeed(parts[1]);
+    const imageRevision = number(parts[2]);
+    const layoutRevision = number(parts[3]);
+    const teamCount = number(parts[4]);
+    const mode = parts[5].toLowerCase();
+    if (![...GAME_MODES, "custom"].includes(mode)) throw new Error();
+    const activeTeams = teamsForCount(teamCount);
+    const turnOrder = [...parts[7].toLowerCase()].map((letter) => TEAM_ORDER.find((team) => team[0] === letter));
+    if (turnOrder.length !== teamCount || new Set(turnOrder).size !== teamCount
+      || turnOrder.some((team) => !activeTeams.includes(team))) throw new Error();
+    const counts = parts[8].split(",").map(number);
+    if (counts.length !== teamCount || counts.some((count) => count < 1)) throw new Error();
+    const config = createGameConfig({
+      teamCount, mode, gridSize: number(parts[6]), turnOrder,
+      teamCounts: Object.fromEntries(activeTeams.map((team, index) => [team, counts[index]])),
+      whiteCount: number(parts[9]), blackCount: number(parts[10])
+    }, seed);
+    return { seed, imageRevision, layoutRevision, config };
+  } catch {
+    throw new Error("完整种子无效或不完整，请重新复制粘贴。");
+  }
+}
+
 export function createGameCode() {
   const buffer = new Uint32Array(2);
   crypto.getRandomValues(buffer);
