@@ -1,28 +1,28 @@
 export const TEAM_ORDER = ["red", "yellow", "blue", "green"];
 
 export const TEAMS = {
-  red: { name: "红队", short: "红", color: "#ef4444" },
-  yellow: { name: "黄队", short: "黄", color: "#f7c948" },
-  blue: { name: "蓝队", short: "蓝", color: "#3b82f6" },
-  green: { name: "绿队", short: "绿", color: "#22c55e" }
+  red: { name: "Red", short: "R", color: "#ef4444" },
+  yellow: { name: "Yellow", short: "Y", color: "#f7c948" },
+  blue: { name: "Blue", short: "B", color: "#3b82f6" },
+  green: { name: "Green", short: "G", color: "#22c55e" }
 };
 
 export const ROLE_NAMES = {
-  red: "红队",
-  yellow: "黄队",
-  blue: "蓝队",
-  green: "绿队",
-  black: "黑色",
-  white: "白色"
+  red: "Red",
+  yellow: "Yellow",
+  blue: "Blue",
+  green: "Green",
+  black: "Black",
+  white: "White"
 };
 
 export const GAME_MODES = ["quick", "classic", "slow"];
 
 export const MODE_NAMES = {
-  quick: "快速",
-  classic: "经典",
-  slow: "慢速",
-  custom: "自定义"
+  quick: "Quick",
+  classic: "Classic",
+  slow: "Slow",
+  custom: "Custom"
 };
 
 const PRESETS = Object.freeze({
@@ -68,7 +68,7 @@ export function parseBoardSeed(value) {
     return { seed: normalizeSeed(text), imageRevision: 0, layoutRevision: 0, config: null };
   }
   if (!/^CNP1:/i.test(text)) {
-    throw new Error("局号请使用 1–10 位英文字母或数字；也可以粘贴游戏中复制的完整种子。");
+    throw new Error("Use a 1–10 character game code of letters or digits, or paste a full seed copied from the game.");
   }
   try {
     const parts = text.split(":");
@@ -96,7 +96,7 @@ export function parseBoardSeed(value) {
     }, seed);
     return { seed, imageRevision, layoutRevision, config };
   } catch {
-    throw new Error("完整种子无效或不完整，请重新复制粘贴。");
+    throw new Error("That full seed is invalid or incomplete. Copy and paste it again.");
   }
 }
 
@@ -148,7 +148,7 @@ export function teamsForCount(rawTeamCount) {
   if (teamCount === 2) return ["red", "blue"];
   if (teamCount === 3) return ["red", "yellow", "blue"];
   if (teamCount === 4) return [...TEAM_ORDER];
-  throw new Error("队伍数量必须是 2、3 或 4。");
+  throw new Error("Team count must be 2, 3, or 4.");
 }
 
 export function getGamePreset(rawTeamCount, rawMode = "classic") {
@@ -159,7 +159,7 @@ export function getGamePreset(rawTeamCount, rawMode = "classic") {
 
 export function resolveFirstTeam(rawSeed, activeTeams, requestedTeam = "red") {
   const safeTeams = activeTeams.filter((team) => TEAM_ORDER.includes(team));
-  if (safeTeams.length === 0) throw new Error("至少需要一个可用队伍。");
+  if (safeTeams.length === 0) throw new Error("At least one valid team is required.");
   if (safeTeams.includes(requestedTeam)) return requestedTeam;
   return safeTeams[0];
 }
@@ -201,14 +201,14 @@ export function createGameConfig(options = {}, rawSeed = "MVP2026") {
   const gridSize = integer(options.gridSize, preset.gridSize);
   const whiteCount = integer(options.whiteCount, preset.whiteCount);
   const blackCount = integer(options.blackCount, preset.blackCount);
-  if (gridSize < 3 || gridSize > 8) throw new Error("方格边长必须是 3 到 8。");
-  if (whiteCount < 0 || blackCount < 0) throw new Error("白牌和黑牌数量不能小于 0。");
-  if (Object.values(teamCounts).some((count) => count < 1)) throw new Error("每队至少需要 1 张颜色牌。");
+  if (gridSize < 3 || gridSize > 8) throw new Error("Grid size must be between 3 and 8.");
+  if (whiteCount < 0 || blackCount < 0) throw new Error("White and black card counts cannot be below 0.");
+  if (Object.values(teamCounts).some((count) => count < 1)) throw new Error("Each team needs at least 1 colored card.");
 
   const cardCount = gridSize * gridSize;
   const assignedCount = Object.values(teamCounts).reduce((sum, count) => sum + count, 0) + whiteCount + blackCount;
   if (assignedCount !== cardCount) {
-    throw new Error("颜色牌总数 " + assignedCount + " 与 " + gridSize + "×" + gridSize + " 方格不一致。");
+    throw new Error("Assigned card total " + assignedCount + " does not match the " + gridSize + "×" + gridSize + " grid.");
   }
 
   return {

@@ -59,7 +59,7 @@ test("portable seeds retain asymmetric custom rules and all team positions", () 
 
 test("invalid seeds fail visibly instead of silently generating a different game", () => {
   const valid = createBoardSeed(buildGame("TEST", 2, 3, { teamCount: 4, mode: "classic" }));
-  for (const input of ["中文", "TOOLONG12345", "AB!CD", "CNP2:TEST", "CNP1:TEST",
+  for (const input of ["\u4e2d\u6587", "TOOLONG12345", "AB!CD", "CNP2:TEST", "CNP1:TEST",
     valid.replace(":rybg:", ":rrbg:"), valid.replace(":5,5,5,5:", ":5,5,5:"),
     valid.replace(":2:3:", ":-1:3:"), valid.replace(":2:3:", ":9007199254740992:3:"),
     valid.replace(":classic:", ":unknown:"), valid.replace(":4:1", ":3:1")]) {
@@ -230,7 +230,7 @@ test("custom rules reject allocations that do not fill the grid", () => {
     teamCounts: { red: 4, yellow: 4, blue: 4 },
     whiteCount: 2,
     blackCount: 1
-  }, "INVALID"), /不一致/);
+  }, "INVALID"), /does not match/);
 });
 
 test("turn advancement follows the configured team order", () => {

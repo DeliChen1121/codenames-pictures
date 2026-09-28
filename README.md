@@ -1,77 +1,117 @@
-# Codenames: Pictures · 现场版
+# Codenames: Pictures · Live
 
-原版游戏官网：[Codenames: Pictures](https://www.czechgames.com/games/codenames-pictures)。参考 GitHub 项目：[samdemaeyer/codenames-pictures](https://github.com/samdemaeyer/codenames-pictures)。
+Official site: [Codenames: Pictures](https://www.czechgames.com/games/codenames-pictures). Reference GitHub project: [samdemaeyer/codenames-pictures](https://github.com/samdemaeyer/codenames-pictures).
 
-一个面向线下活动主持人的 2 至 4 队 Codenames Pictures 游戏。开始页可选择队伍数量与快速、经典、慢速模式；玩家题板与队长答案链接通过同一组参数得到完全一致的图片、颜色、先手和规则。
+## Download and play
 
-## MVP 功能
+**[Download the offline game (ZIP)](https://github.com/DeliChen1121/codenames-pictures/releases/latest/download/codenames-pictures-offline.zip)**
 
-- 2、3、4 队可选；自动启用对应的红、黄、蓝、绿队伍
-- 快速、经典、慢速共 9 套预设，支持 4 × 4、5 × 5、6 × 6 图片题板
-- 可展开“详细调整”，自定义 3 × 3 至 8 × 8 方格、每队目标、白牌和黑牌
-- 开始页选择队伍数量和模式，点击“开始游戏”后进入独立的队伍顺序选择页，确认并点击“开始”才显示图片
-- 所有模式默认按红、黄、蓝、绿顺序行动；可在开局前的顺序选择页或游戏设置中选择任意完整队伍顺序
-- 开局前可直接用鼠标或触屏拖动队伍卡片排序，也支持上下移动按钮与键盘方向键
-- 独立的队长答案页面：保留图片，并用醒目的双层颜色边框显示答案
-- 确定性局号：局号、完整规则、图片批次和分布版本共同锁定当前题板
-- 开局时自动生成局号；游戏内的种子窗口可输入 1–10 位英文字母或数字，相同种子和规则固定生成相同图片与分布
-- 点击题板顶部“种子”可复制 `CNP1:` 开头的完整种子；在另一台电脑粘贴可自动恢复规则、队伍顺序、图片批次与分布版本。换图片或换分布后需重新复制
-- 种子弹窗可直接输入或粘贴其他种子，按回车或“切换题板”原地开新局；短局号沿用当前规则，完整种子带入所有规则。当前主持页打开的队长答案窗口同步更新，其他设备仍需打开新链接
-- 在种子窗口切换题板会开始一局全新的游戏，不恢复上次翻牌进度；浏览器刷新仍保留原来的进度恢复行为
-- 玩家页可只刷新全部表面图片，不改变下方答案颜色或揭牌进度
-- 可只刷新隐藏颜色分布并保持图片不变；换分布时会重置本局进度
-- 一键复制当前图片与颜色完全对应的队长答案链接
-- 近方形图片网格；翻牌后保留原图，用高对比边框和浅色蒙层标记答案
-- 右侧固定宽度的主持人控制台显示当前回合、各队剩余图片、出局状态和名次；队伍卡片按本局行动顺序排列
-- 点击翻牌：本队颜色继续；其他队颜色会帮助对方并结束本队回合；白色结束回合；黑色只淘汰当前队
-- 两队模式在一队率先完成或对手触发黑色时立即判定胜负
-- 三、四队自动跳过已完成或已出局队伍，按完成回合使用标准竞赛排名（例如 1st、1st、3rd、3rd）
-- 三、四队中触发黑色的队伍固定列为最后一名；多个队伍触发黑色时并列最后
-- 游戏结束自动显示全部颜色答案，并弹出带庆祝动画的最终排名
-- 全体队长先有 2 分钟准备；每队回合先有 30 秒队长思考，再进入队员答题
-- 队长提前结束思考时，剩余秒数会与设定的答题时间相加
-- 每个计时阶段都可跳过：准备进入本局先手、思考进入答题、答题进入下一队
-- 齿轮“游戏设置”可分别调整开场准备、队长思考、队员答题时间和界面字号；字体可选小、标准、大、超大四档，默认使用 15px 的“大”，并保存在当前设备
-- 桌面开始页采用紧凑双栏布局，在常见屏幕中无需滚动即可看到完整设置与开始按钮
-- 揭牌进度保存在当前浏览器
+[Release notes and all versions](https://github.com/DeliChen1121/codenames-pictures/releases)
 
-## 本地运行
+1. Download the ZIP above and extract it completely.
+2. Double-click **`LAUNCH_GAME.html`** to open the game in your browser.
+3. Keep **`game_assets/`** beside the launcher. No installation or internet connection is needed to play.
+
+```text
+LAUNCH_GAME.html       <- Open this file
+game_assets/          <- Keep this folder alongside the launcher
+```
+
+The instructions and copyright notice are inside `game_assets/`. GitHub's **Code > Download ZIP**
+downloads development source, not the ready-to-play package. While the repository is private,
+the release download requires a signed-in GitHub account with repository access.
+
+> **Copyright status:** This is an unofficial fan-made adaptation. Redistribution permission
+> for the bundled third-party artwork has not been verified. Attribution is not permission;
+> these notices do not make the repository or ZIP cleared for public distribution.
+> See [copyright, credits, and license status](COPYRIGHT.txt).
+
+A 2-to-4-team Codenames Pictures game for in-person event hosts. The start page chooses team count and Quick, Classic, or Slow pace. The player board and captain key use the same parameters, so pictures, colors, first team, and rules stay identical.
+
+## MVP features
+
+- 2, 3, or 4 teams; the matching red, yellow, blue, and green teams turn on automatically
+- Nine presets across Quick, Classic, and Slow, with 4 × 4, 5 × 5, and 6 × 6 picture boards
+- Expand Advanced to customize a 3 × 3 to 8 × 8 grid, per-team targets, white cards, and black cards
+- Choose teams and pace on the start page, click Start game to pick turn order, then click Start to show pictures
+- All modes default to red, yellow, blue, then green; pick any full team order on the pre-game order page or in game settings
+- Before the game starts, drag team cards with a mouse or touchscreen, or use the move buttons and arrow keys
+- Separate captain key page: pictures stay visible, with a high-contrast double color border for answers
+- Deterministic game codes: the code, full rules, picture batch, and layout version lock the current board
+- A game code is generated at start. In the seed dialog you can enter 1–10 letters or digits; the same seed and rules always produce the same pictures and layout
+- Click Seed at the top of the board to copy a full seed starting with `CNP1:`. Paste it on another computer to restore rules, team order, picture batch, and layout version. Copy again after New pictures or New layout
+- The seed dialog can take another seed; press Enter or Switch board to start in place. A short game code keeps current rules; a full seed brings its own rules. A captain key window opened from this host page updates automatically; other devices still need a new link
+- Switching boards in the seed dialog starts a fresh game and does not restore previous reveals; a browser refresh still restores saved progress as before
+- The player page can refresh all surface pictures without changing hidden colors or reveal progress
+- You can refresh only the hidden color layout while keeping pictures; a new layout resets this game’s progress
+- One click copies a captain key link that matches the current pictures and colors exactly
+- Near-square picture grid; after a reveal the image stays, marked with a high-contrast border and a light overlay
+- A fixed-width host console on the right shows the current turn, remaining pictures, elimination, and placement; team cards follow this game’s turn order
+- Click to reveal: your color continues; another team’s color helps them and ends your turn; white ends the turn; black only eliminates the guessing team
+- Two-team games resolve as soon as one team finishes first or the opponent hits black
+- Three- and four-team games skip finished or eliminated teams and use standard competition ranking by finishing round (for example 1st, 1st, 3rd, 3rd)
+- In three- and four-team games, a team that hits black is always last; several black hits share last place
+- When the game ends, all color answers are shown and a ranking overlay with a celebration animation appears
+- All captains get 2 minutes of prep; each team turn starts with 30 seconds of captain thinking, then guessing
+- If a captain ends thinking early, leftover seconds are added to the guessing time
+- Every timer phase can be skipped: prep goes to the first team, thinking goes to guessing, guessing goes to the next team
+- The gear Game settings panel adjusts opening prep, captain thinking, guessing time, and font size. Fonts are Small, Standard, Large, and Huge; Large (15px) is the default and is saved on this device
+- The desktop start page uses a compact two-column layout so typical screens show the full setup and start button without scrolling
+- Reveal progress is saved in the current browser
+
+## Run locally
 
 ```bash
 npm run build
 npm run dev
 ```
 
-然后打开 `http://localhost:4173/`。玩家题板在 `/play.html?game=局号`，复制按钮会生成对应的 `/master.html` 队长答案链接。
+Then open `http://localhost:4173/`. The player board is `/play.html?game=GAMECODE`. The copy button builds the matching `/master.html` captain key link.
 
-## 制作离线压缩包
+## Build an offline zip
 
 ```bash
 npm run build:offline
 ```
 
-生成文件位于 `offline-dist/codenames-pictures-offline.zip`。把这个压缩包发给其他人后，只需完整解压，再双击根目录中唯一的 `双击这里开始游戏.html` 即可在浏览器中离线运行，无需安装、启动服务器或连接网络。
+The file is written to `offline-dist/codenames-pictures-offline.zip`. Extract it completely and double-click `LAUNCH_GAME.html`. No install, server, or network is required to play.
 
-压缩包根目录仅保留启动文件和 `其他游戏文件（无需打开）` 文件夹；全部 280 张图片、程序和说明都收纳在该文件夹内。不要移动启动文件或改名、删除资源文件夹；队长可在游戏页面点击“打开队长答案窗口”，并把该窗口放在另一块屏幕或仅队长可见的设备上。
+The ZIP root contains only `LAUNCH_GAME.html` and `game_assets/`. All 280 pictures, program files, `README.txt`, and `COPYRIGHT.txt` live in that folder. Do not move the launcher separately or rename or delete the resource folder. Captains can click Open captain key and place that window on another screen. A link to a local file on your computer cannot automatically open on someone else's device; they need their own extracted copy and the same full seed.
 
-## 图片来源
+Validate the built package before attaching it to a release:
 
-项目已在 `public/images/cards/` 保存原题库的 280 张 `card-N.jpg` 图片。程序优先加载这些本地文件；某张本地文件不存在时，才回退到原项目的 GitHub Pages 地址。
+```bash
+npm test
+npm run build:offline
+npm run verify:offline
+```
 
-原项目：<https://github.com/samdemaeyer/codenames-pictures>
+## Image sources
 
-原仓库当前未显示明确许可证。请将本项目和原图片限制在私人测试/活动用途；公开发布或商业使用前应先确认授权，或替换为拥有许可的图片库。
+The original 280 `card-N.jpg` files are stored in `public/images/cards/`. The app loads local images only. If an image is missing, extract the complete package again.
 
-## 项目结构
+Original project: <https://github.com/samdemaeyer/codenames-pictures>
 
-- `index.html`：游戏介绍与开始页面
-- `master.html`：带图片和彩色边框的队长答案
-- `play.html`：主持人/玩家题板
-- `game-core.js`：局号、随机布局与队伍规则
-- `app.js`：界面交互、揭牌、回合与计时
-- `styles.css`：现场大屏与移动端样式
-- `tests/`：核心规则测试
+## Copyright and license status
 
-## 后续建议
+This is an independent fan-made adaptation, not affiliated with or endorsed by Czech Games Edition or the upstream maintainer. The original game is designed by Vlaada Chvatil and published by Czech Games Edition. The extra team modes and custom presets are house rules, not official rules.
 
-MVP 不需要服务器。若以后希望多台设备实时同步主持人的揭牌、计时和回合状态，可以在保持局号算法不变的前提下增加房间服务或实时数据库。
+No explicit license was found in the upstream repository during the September 27, 2026 review, and no separate redistribution permission for the artwork has been verified. No open-source license has been selected for this project's original contributions. A future code license must not be presented as licensing the third-party artwork or material that the maintainer has no right to relicense.
+
+Attribution, private access, and non-commercial use do not by themselves grant permission. Before making this repository public, obtain the necessary permissions or replace/remove the affected material, including copies in Git history and release attachments. [GitHub explains the effect of having no license](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/licensing-a-repository).
+
+Full attribution, rights-holder contact information, and the public-release requirements are in [COPYRIGHT.txt](COPYRIGHT.txt). This notice is included in every built offline ZIP.
+
+## Project structure
+
+- `index.html`: intro and start page
+- `master.html`: captain key with pictures and color borders
+- `play.html`: host / player board
+- `game-core.js`: game codes, random layouts, and team rules
+- `app.js`: UI, reveals, turns, and timers
+- `styles.css`: live-screen and mobile styles
+- `tests/`: core rules tests
+
+## Later ideas
+
+The MVP does not need a server. If you later want several devices to live-sync the host’s reveals, timers, and turn state, add a room service or realtime database without changing the game-code algorithm.

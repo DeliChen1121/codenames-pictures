@@ -1,0 +1,70 @@
+CREDITS, COPYRIGHT, AND LICENSE STATUS
+=====================================
+
+Project: Codenames: Pictures - Live
+Maintainer: DeliChen1121
+Repository: https://github.com/DeliChen1121/codenames-pictures
+Notice reviewed: September 27, 2026
+
+Original game and affiliation
+-----------------------------
+Codenames: Pictures is a game designed by Vlaada Chvatil and published by
+Czech Games Edition (CGE).
+Official game: https://www.czechgames.com/games/codenames-pictures
+
+This project is an independent, unofficial fan-made adaptation. It is not
+affiliated with, sponsored by, or endorsed by CGE or the upstream maintainer.
+The game names are used to identify the original game. No ownership of the
+original game's names, branding, artwork, or other third-party material is claimed.
+Rights in those materials remain with their respective rights holders.
+The extra team modes and custom rules are this adaptation's house rules, not
+a claim to reproduce the official rules or an official digital edition.
+
+Upstream project and picture assets
+-----------------------------------
+Reference implementation and source of the bundled 280 card images:
+https://github.com/samdemaeyer/codenames-pictures
+Asset source:
+https://github.com/samdemaeyer/codenames-pictures/tree/main/public/images/cards
+
+Source paths: public/images/cards/card-0.jpg through card-279.jpg
+Offline paths: game_assets/images/cards/card-0.jpg through card-279.jpg
+
+No explicit license was found in the upstream repository during this review.
+No separate permission to redistribute the original picture assets has been
+verified or recorded for this project. A public GitHub URL is not, by itself,
+permission to redistribute or relicense those assets or upstream source code.
+Attribution does not replace permission from the relevant rights holders.
+
+License status
+--------------
+No open-source license has been selected for this repository's original
+contributions. This notice is an attribution and status record, not a license.
+It grants no copyright or trademark permissions for this project's code,
+upstream code, or third-party artwork. Rights remain with the respective owners,
+subject to applicable law and any separately granted permissions.
+
+Private access, educational or church use, and non-commercial use are not
+automatic permission to copy, distribute, or publish protected material.
+Availability of a downloadable ZIP does not establish rights clearance.
+
+Before making the repository or a release public
+------------------------------------------------
+1. Obtain and record permission covering the artwork and any reused upstream
+   material, or replace/remove material whose redistribution rights are unresolved.
+2. Choose a license only for code you have the right to license. Clearly exclude
+   third-party assets unless their own permissions explicitly allow otherwise.
+3. Review Git history and all release attachments. Removing an image from the
+   latest checkout alone does not remove earlier committed or released copies.
+4. Update this notice with the actual permissions, license texts, and asset sources.
+
+Rights-holder contact
+---------------------
+Contact the repository maintainer through their GitHub profile:
+https://github.com/DeliChen1121
+If repository issues are available to you, you can also open a rights-related issue:
+https://github.com/DeliChen1121/codenames-pictures/issues
+Please identify the affected files, relevant rights, and requested action.
+
+Reference on repositories without a license:
+https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/licensing-a-repository

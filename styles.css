@@ -763,7 +763,7 @@ input {
 }
 
 .picture-card.image-missing::before {
-  content: "图片加载失败";
+  content: "Image failed to load";
   position: absolute;
   inset: 0;
   display: grid;
@@ -2564,6 +2564,8 @@ button.game-code-pill:hover { border-color: #8fc2ff; }
 .seed-dialog textarea { display: block; margin-top: 0.5rem; resize: vertical; overflow-wrap: anywhere; }
 .seed-dialog .seed-note { font-size: 0.85rem; margin-bottom: 0; }
 .start-card[hidden] { display: none; }
+.copyright-note { margin: 0.75rem 0 0; color: var(--muted); font-size: 0.75rem; text-align: center; }
+.copyright-note a { text-decoration: underline; text-underline-offset: 0.15em; }
 body[data-view="start"] .order-card { max-width: 52rem; }
 .order-setup { display: grid; gap: 0.8rem; text-align: left; }
 .order-preview { display: grid; gap: 0.65rem; padding: 0; margin: 0; list-style: none; }

@@ -23,12 +23,12 @@ const DEFAULT_TIMER_SECONDS = Object.freeze({ prep: 120, clue: 30, guess: 60 });
 const FONT_SIZE_KEY = "codenames-four-teams:font-size-v3";
 const DEFAULT_FONT_SIZE_PRESET = "large";
 const FONT_SIZE_PRESETS = Object.freeze({ small: 13, standard: 14, large: 15, huge: 18 });
-const FONT_SIZE_NAMES = Object.freeze({ small: "小", standard: "标准", large: "大", huge: "超大" });
+const FONT_SIZE_NAMES = Object.freeze({ small: "Small", standard: "Standard", large: "Large", huge: "Huge" });
 let fontSizePreset = loadFontSizePreset();
 const timerPresets = {
-  prep: { label: "全体队长思考" },
-  clue: { label: "当前队长思考" },
-  guess: { label: "当前队伍答题" }
+  prep: { label: "Captain prep" },
+  clue: { label: "Captain thinking" },
+  guess: { label: "Team guessing" }
 };
 
 function storageGet(key) {
@@ -122,7 +122,7 @@ function registerWebTool(tool) {
 
 function assertEmptyInput(input) {
   if (input && Object.keys(input).length > 0) {
-    throw new Error("此操作不接受额外参数。");
+    throw new Error("This action does not take extra arguments.");
   }
 }
 
@@ -193,7 +193,7 @@ function writeGameConfigToUrl(url, config) {
 }
 
 function gameModeSummary(config) {
-  return config.teamCount + " 队 · " + MODE_NAMES[config.mode] + " · " + config.gridSize + "×" + config.gridSize;
+  return config.teamCount + " teams · " + MODE_NAMES[config.mode] + " · " + config.gridSize + "×" + config.gridSize;
 }
 
 function teamOrderPermutations(teams) {
@@ -252,23 +252,13 @@ function imageSource(imageId) {
   return "./images/cards/card-" + imageId + ".jpg";
 }
 
-function fallbackImageSource(imageId) {
-  if (window.location.protocol === "file:") return imageSource(imageId);
-  return "https://samdemaeyer.github.io/codenames-pictures/images/cards/card-" + imageId + ".jpg";
-}
-
 function loadCardImage(card, container) {
   const image = document.createElement("img");
-  image.alt = "图片 " + card.coordinate;
+  image.alt = "Picture " + card.coordinate;
   image.loading = "eager";
   image.src = imageSource(card.imageId);
   image.addEventListener("error", () => {
-    if (image.dataset.fallbackUsed) {
-      container.classList.add("image-missing");
-      return;
-    }
-    image.dataset.fallbackUsed = "true";
-    image.src = fallbackImageSource(card.imageId);
+    container.classList.add("image-missing");
   });
   return image;
 }
@@ -277,7 +267,7 @@ function masterPictureCard(card) {
   const cardElement = document.createElement("article");
   cardElement.className = "picture-card answer-card is-revealed";
   cardElement.dataset.role = card.role;
-  cardElement.setAttribute("aria-label", "图片 " + card.coordinate + "：" + ROLE_NAMES[card.role]);
+  cardElement.setAttribute("aria-label", "Picture " + card.coordinate + ": " + ROLE_NAMES[card.role]);
 
   const coordinate = document.createElement("span");
   coordinate.className = "picture-coordinate";
@@ -318,9 +308,9 @@ function setupStart() {
   function presetSummary(teamCount, mode) {
     const preset = getGamePreset(teamCount, mode);
     const colors = teamCount === 2
-      ? "先手 " + preset.firstCount + " / 后手 " + preset.secondCount
-      : "每队 " + preset.perTeamCount;
-    return preset.gridSize + "×" + preset.gridSize + " · " + colors + " · 白 " + preset.whiteCount + " · 黑 " + preset.blackCount;
+      ? "First " + preset.firstCount + " / second " + preset.secondCount
+      : preset.perTeamCount + " each";
+    return preset.gridSize + "×" + preset.gridSize + " · " + colors + " · White " + preset.whiteCount + " · Black " + preset.blackCount;
   }
 
   function updateModeSummaries() {
@@ -348,13 +338,13 @@ function setupStart() {
     const teamCount = selectedTeamCount();
     if (teamCount === 2) {
       teamCountsContainer.replaceChildren(
-        countInput("先手颜色牌", preset.firstCount, "first"),
-        countInput("后手颜色牌", preset.secondCount, "second")
+        countInput("First team colored cards", preset.firstCount, "first"),
+        countInput("Second team colored cards", preset.secondCount, "second")
       );
       return;
     }
     teamCountsContainer.replaceChildren(...teamsForCount(teamCount).map((team) => (
-      countInput(TEAMS[team].name + "颜色牌", preset.perTeamCount, team)
+      countInput(TEAMS[team].name + " colored cards", preset.perTeamCount, team)
     )));
   }
 
@@ -371,8 +361,8 @@ function setupStart() {
       && assigned === target;
     allocationStatus.classList.toggle("is-valid", valid);
     allocationStatus.textContent = valid
-      ? "✓ 已分配 " + assigned + " / " + target + " 张"
-      : "当前分配 " + assigned + " 张，需要刚好填满 " + target + " 个方格";
+      ? "✓ Assigned " + assigned + " / " + target + " cards"
+      : "Assigned " + assigned + " cards; must fill exactly " + target + " spaces";
     startButton.disabled = !valid;
     return valid;
   }
@@ -405,7 +395,7 @@ function setupStart() {
   }
 
   function startNewGame() {
-    if (!validateAllocation()) throw new Error("颜色牌数量还没有填满方格。");
+    if (!validateAllocation()) throw new Error("Colored cards do not fill the grid yet.");
     const seed = createGameCode();
     const config = readConfigForSeed(seed);
     const url = playUrl(seed, 0, 0, config);
@@ -421,7 +411,7 @@ function setupStart() {
       const item = document.createElement("li");
       item.dataset.team = team;
       item.tabIndex = 0;
-      item.setAttribute("aria-label", TEAMS[team].name + "，第 " + (index + 1) + " 位");
+      item.setAttribute("aria-label", TEAMS[team].name + ", position " + (index + 1));
       item.setAttribute("aria-describedby", "order-help");
       item.style.setProperty("--team-color", TEAMS[team].color);
       const position = document.createElement("span");
@@ -430,14 +420,14 @@ function setupStart() {
       const name = document.createElement("strong");
       name.textContent = TEAMS[team].name;
       const detail = document.createElement("small");
-      detail.textContent = (index === 0 ? "先手 · " : "") + config.teamCounts[team] + " 张颜色牌";
+      detail.textContent = (index === 0 ? "First · " : "") + config.teamCounts[team] + " colored cards";
       const handle = document.createElement("span");
       handle.className = "order-drag-handle";
       handle.textContent = "⠿";
       handle.setAttribute("aria-hidden", "true");
       const actions = document.createElement("span");
       actions.className = "order-move-actions";
-      for (const [direction, label, symbol] of [[-1, "上移", "↑"], [1, "下移", "↓"]]) {
+      for (const [direction, label, symbol] of [[-1, "Move up ", "↑"], [1, "Move down ", "↓"]]) {
         const button = document.createElement("button");
         button.type = "button";
         button.textContent = symbol;
@@ -559,8 +549,8 @@ function setupStart() {
 
   registerWebTool({
     name: "start_new_codenames_game",
-    title: "开始新游戏",
-    description: "从开始页进入队伍顺序选择；确认顺序后再调用即可发牌开始新局。",
+    title: "Start a new game",
+    description: "From the start page, go to team-order selection; call again after confirming order to deal a new game.",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
     annotations: { readOnlyHint: false, untrustedContentHint: false },
     execute(input) {
@@ -587,20 +577,20 @@ function setupMaster() {
   setGameInUrl(seed, imageRevision, layoutRevision, config);
   codeLabel.textContent = seed;
   playLink.href = playUrl(seed, imageRevision, layoutRevision, config).href;
-  summary.textContent = gameModeSummary(config) + " · " + TEAMS[config.firstTeam].name + "先手";
+  summary.textContent = gameModeSummary(config) + " · " + TEAMS[config.firstTeam].name + " first";
   board.style.setProperty("--grid-size", String(config.gridSize));
   board.dataset.gridSize = String(config.gridSize);
-  board.setAttribute("aria-label", config.gridSize + "乘" + config.gridSize + "队长答案卡");
+  board.setAttribute("aria-label", config.gridSize + " by " + config.gridSize + " captain key");
   board.replaceChildren(...game.cards.map(masterPictureCard));
   const legendRoles = [
     ...config.turnOrder.map((team) => [team, TEAMS[team].name, config.teamCounts[team]]),
-    ["black", "黑色", config.blackCount],
-    ["white", "白色", config.whiteCount]
+    ["black", "Black", config.blackCount],
+    ["white", "White", config.whiteCount]
   ];
   legend.replaceChildren(...legendRoles.filter(([, , count]) => count > 0).map(([role, name, count]) => {
     const item = document.createElement("span");
     item.innerHTML = '<i class="dot ' + role + '"></i>' + name + " " + count;
-    if (role === config.firstTeam) item.append(" · 先手");
+    if (role === config.firstTeam) item.append(" · first");
     return item;
   }));
 }
@@ -782,7 +772,7 @@ function setupPlay() {
     button.className = "picture-card";
     button.dataset.index = String(card.index);
     button.dataset.role = card.role;
-    button.setAttribute("aria-label", "图片 " + card.coordinate + (isRevealed ? "，已翻开：" + ROLE_NAMES[card.role] : "，未翻开"));
+    button.setAttribute("aria-label", "Picture " + card.coordinate + (isRevealed ? ", revealed: " + ROLE_NAMES[card.role] : ", hidden"));
 
     const image = loadCardImage(card, button);
 
@@ -822,16 +812,16 @@ function setupPlay() {
       const remaining = remainingFor(team);
       const isEliminated = Boolean(eliminatedTeams[team]);
       const isComplete = Boolean(completionRounds[team]);
-      let status = "剩余 " + remaining + " 张";
+      let status = remaining + " left";
       let badge = String(remaining);
       if (winnerTeam) {
-        status = team === winnerTeam ? "本局获胜" : (isEliminated ? "触发黑色" : "本局落败");
-        badge = team === winnerTeam ? "胜利" : "失败";
+        status = team === winnerTeam ? "Won this game" : (isEliminated ? "Hit black" : "Lost this game");
+        badge = team === winnerTeam ? "Win" : "Loss";
       } else if (isEliminated) {
-        status = "第 " + eliminatedTeams[team] + " 轮触发黑色 · 最后一名";
+        status = "Hit black in round " + eliminatedTeams[team] + " · last place";
         badge = ordinal(placements[team]);
       } else if (isComplete) {
-        status = "第 " + completionRounds[team] + " 轮完成";
+        status = "Finished in round " + completionRounds[team];
         badge = ordinal(placements[team]);
       }
 
@@ -857,24 +847,24 @@ function setupPlay() {
     const preparing = currentTeam === null && round === 0 && !finished;
     turnConsole.dataset.team = currentTeam || (preparing ? "prep" : "finished");
     currentTeamName.textContent = preparing
-      ? "全体队长准备"
+      ? "Captains prepare"
       : finished
-        ? (winnerTeam ? TEAMS[winnerTeam].name + "胜利" : "本局已结束")
+        ? (winnerTeam ? TEAMS[winnerTeam].name + " wins" : "Game over")
         : TEAMS[currentTeam].name;
-    roundLabel.textContent = preparing ? "准备阶段" : finished ? "最终结果" : "第 " + round + " 轮";
+    roundLabel.textContent = preparing ? "Prep" : finished ? "Final results" : "Round " + round;
 
     if (preparing) {
-      phaseInstruction.textContent = config.teamCount + " 位队长一起查看答案；队友只看左侧图片。";
+      phaseInstruction.textContent = config.teamCount + " captains look at the key together. Teammates only see the pictures on the left.";
     } else if (finished) {
       phaseInstruction.textContent = winnerTeam
-        ? TEAMS[winnerTeam].name + "率先找齐全部图片，本局获胜。"
-        : "所有队伍均已完成或出局，名次已记录。";
+        ? TEAMS[winnerTeam].name + " found all of their pictures first and wins."
+        : "Every team has finished or been eliminated. Placements are recorded.";
     } else if (timerPhase === "clue") {
-      phaseInstruction.textContent = TEAMS[currentTeam].name + "队长用“一个词 + 一个数字”给提示；说完即可开始答题。";
+      phaseInstruction.textContent = TEAMS[currentTeam].name + " captain gives a one-word clue plus a number, then guessing can start.";
     } else if (timerRemaining === 0) {
-      phaseInstruction.textContent = TEAMS[currentTeam].name + "答题时间到，请切换下一队。";
+      phaseInstruction.textContent = TEAMS[currentTeam].name + " guessing time is up. Switch to the next team.";
     } else {
-      phaseInstruction.textContent = TEAMS[currentTeam].name + "正在答题；猜中本队颜色可以继续。";
+      phaseInstruction.textContent = TEAMS[currentTeam].name + " is guessing. Hits on their color can continue.";
     }
 
     startAnsweringButton.disabled = finished || !currentTeam || !isActive(currentTeam) || timerPhase !== "clue";
@@ -884,7 +874,7 @@ function setupPlay() {
     nextTeamButton.hidden = finished;
     viewResultsButton.hidden = !finished;
     gameCodeLabel.textContent = seed;
-    gameModeLabel.textContent = gameModeSummary(config) + " · " + TEAMS[config.firstTeam].short + "先";
+    gameModeLabel.textContent = gameModeSummary(config) + " · " + TEAMS[config.firstTeam].short + " first";
     openMasterWindow.hidden = window.location.protocol !== "file:";
     openMasterWindow.href = masterUrl(seed, imageRevision, layoutRevision, config).href;
     renderTeams();
@@ -901,14 +891,14 @@ function setupPlay() {
     timerPhaseLabel.textContent = timerPresets[timerPhase].label;
     timerDisplay.textContent = formatTime(timerRemaining);
     if (timerRunning) {
-      timerToggle.textContent = "暂停";
+      timerToggle.textContent = "Pause";
     } else if (timerPhase === "prep" && timerRemaining === timerSettings.prep) {
-      timerToggle.textContent = "开始准备";
+      timerToggle.textContent = "Start prep";
     } else {
-      timerToggle.textContent = "继续";
+      timerToggle.textContent = "Resume";
     }
     timerToggle.disabled = gameIsFinished() || (timerPhase === "guess" && timerRemaining === 0);
-    timerSkip.textContent = timerPhase === "prep" ? "跳过准备" : timerPhase === "clue" ? "跳过思考" : "跳过答题";
+    timerSkip.textContent = timerPhase === "prep" ? "Skip prep" : timerPhase === "clue" ? "Skip thinking" : "Skip guessing";
     timerSkip.disabled = gameIsFinished();
     timer.classList.toggle("is-urgent", timerRemaining <= 10);
   }
@@ -939,17 +929,17 @@ function setupPlay() {
     currentTeam = firstTeam;
     round = Math.max(1, round);
     configureTimer("clue", timerSettings.clue, true);
-    message.textContent = "准备时间结束。现在轮到" + TEAMS[currentTeam].name + "，队长有 " + formatTime(timerSettings.clue) + " 思考。";
+    message.textContent = "Prep is over. It is " + TEAMS[currentTeam].name + "'s turn. The captain has " + formatTime(timerSettings.clue) + " to think.";
     saveState();
   }
 
   function startAnswering() {
     if (!currentTeam || !isActive(currentTeam) || timerPhase !== "clue") {
-      throw new Error("只有在当前队长思考阶段才能开始答题。");
+      throw new Error("Guessing can start only during the current captain thinking phase.");
     }
     const carriedSeconds = timerRemaining;
     configureTimer("guess", answerTimeWithCarry(carriedSeconds, timerSettings.guess), true);
-    message.textContent = TEAMS[currentTeam].name + "开始答题：保留 " + carriedSeconds + " 秒，并增加 " + formatTime(timerSettings.guess) + "。";
+    message.textContent = TEAMS[currentTeam].name + " starts guessing: keeping " + carriedSeconds + "s and adding " + formatTime(timerSettings.guess) + ".";
   }
 
   function startTimer() {
@@ -969,7 +959,7 @@ function setupPlay() {
           startAnswering();
           return;
         }
-        message.textContent = TEAMS[currentTeam].name + "答题时间到，请主持人点击“下一个队伍”。";
+        message.textContent = TEAMS[currentTeam].name + " guessing time is up. The host should click Next team.";
         renderTimer();
         renderStatus();
         updateBoardAvailability();
@@ -993,7 +983,7 @@ function setupPlay() {
       startAnswering();
       return;
     }
-    advanceTeam("主持人跳过了答题倒计时。", true);
+    advanceTeam("The host skipped the guessing countdown.", true);
   }
 
   function findNextActive(fromTeam) {
@@ -1009,10 +999,10 @@ function setupPlay() {
       return firstPlace - secondPlace || config.turnOrder.indexOf(first) - config.turnOrder.indexOf(second);
     });
 
-    finalResultsTitle.textContent = winnerTeam ? TEAMS[winnerTeam].name + "胜利！" : "本局排名";
+    finalResultsTitle.textContent = winnerTeam ? TEAMS[winnerTeam].name + " wins!" : "Final ranking";
     finalResultsCopy.textContent = winnerTeam
-      ? "两队对抗已决出胜负，所有答案已经显示在题板上。"
-      : "所有答案已经显示在题板上。";
+      ? "The two-team match is decided. All answers are shown on the board."
+      : "All answers are shown on the board.";
 
     rankingList.replaceChildren(...orderedTeams.map((team) => {
       const row = document.createElement("div");
@@ -1022,7 +1012,7 @@ function setupPlay() {
 
       const badge = document.createElement("strong");
       badge.className = "ranking-place";
-      badge.textContent = winnerTeam ? (team === winnerTeam ? "胜利" : "失败") : ordinal(placement);
+      badge.textContent = winnerTeam ? (team === winnerTeam ? "Win" : "Loss") : ordinal(placement);
 
       const copy = document.createElement("span");
       const name = document.createElement("b");
@@ -1030,11 +1020,11 @@ function setupPlay() {
       const detail = document.createElement("small");
       detail.textContent = winnerTeam
         ? (team === winnerTeam
-          ? (completionRounds[team] ? "第 " + completionRounds[team] + " 轮率先完成" : "对手触发黑色")
-          : (eliminatedRound ? "第 " + eliminatedRound + " 轮触发黑色" : "对手率先完成"))
+          ? (completionRounds[team] ? "Finished first in round " + completionRounds[team] : "Opponent hit black")
+          : (eliminatedRound ? "Hit black in round " + eliminatedRound : "Opponent finished first"))
         : (eliminatedRound
-          ? "第 " + eliminatedRound + " 轮触发黑色，列为最后一名"
-          : "第 " + completionRounds[team] + " 轮完成");
+          ? "Hit black in round " + eliminatedRound + " and placed last"
+          : "Finished in round " + completionRounds[team]);
       copy.append(name, detail);
       row.append(badge, copy);
       return row;
@@ -1118,8 +1108,8 @@ function setupPlay() {
     timerRemaining = 0;
     revealed = new Set(game.cards.map((card) => card.index));
     message.textContent = winnerTeam
-      ? reason + " " + TEAMS[winnerTeam].name + "赢得本局。"
-      : reason + " 所有队伍均已完成或出局，本局结束。";
+      ? reason + " " + TEAMS[winnerTeam].name + " wins the game."
+      : reason + " Every team has finished or been eliminated. The game is over.";
     saveState();
     renderTimer();
     renderBoard();
@@ -1140,7 +1130,7 @@ function setupPlay() {
     round = next.round;
     currentTeam = next.team;
     configureTimer("clue", timerSettings.clue, autoStart);
-    message.textContent = reason + " 现在轮到" + TEAMS[currentTeam].name + "，队长有 " + formatTime(timerSettings.clue) + " 思考。";
+    message.textContent = reason + " It is " + TEAMS[currentTeam].name + "'s turn. The captain has " + formatTime(timerSettings.clue) + " to think.";
     saveState();
   }
 
@@ -1149,7 +1139,7 @@ function setupPlay() {
     currentTeam = team;
     round = Math.max(1, round);
     configureTimer("clue", timerSettings.clue, true);
-    message.textContent = "主持人已将回合切换到" + TEAMS[team].name + "。";
+    message.textContent = "The host switched the turn to " + TEAMS[team].name + ".";
     saveState();
   }
 
@@ -1161,12 +1151,12 @@ function setupPlay() {
 
   function completionMessage(team) {
     const placement = calculatePlacements(completionRounds, config.activeTeams)[team];
-    return TEAMS[team].name + "已在第 " + completionRounds[team] + " 轮找齐 " + config.teamCounts[team] + " 张，当前排名 " + ordinal(placement) + "。";
+    return TEAMS[team].name + " found all " + config.teamCounts[team] + " cards in round " + completionRounds[team] + " and is currently " + ordinal(placement) + ".";
   }
 
   function revealCard(card) {
-    if (revealed.has(card.index)) throw new Error("这张图片已经翻开。");
-    if (!canReveal()) throw new Error("请先进入当前队伍的答题阶段。");
+    if (revealed.has(card.index)) throw new Error("This picture is already revealed.");
+    if (!canReveal()) throw new Error("Enter the current team's guessing phase first.");
 
     const guessingTeam = currentTeam;
     revealed.add(card.index);
@@ -1177,38 +1167,38 @@ function setupPlay() {
       stopTimer(false);
       if (config.teamCount === 2) {
         const opponent = config.activeTeams.find((team) => team !== guessingTeam);
-        finishGame(TEAMS[guessingTeam].name + "翻到黑色并出局。", opponent);
+        finishGame(TEAMS[guessingTeam].name + " hit black and is out.", opponent);
         return;
       }
-      advanceTeam(TEAMS[guessingTeam].name + "翻到黑色并出局。", false);
+      advanceTeam(TEAMS[guessingTeam].name + " hit black and is out.", false);
       if (!gameIsFinished()) {
-        message.textContent = TEAMS[guessingTeam].name + "翻到黑色并出局。下一队是" + TEAMS[currentTeam].name + "；关闭提示后开始 " + formatTime(timerSettings.clue) + " 队长思考。";
-        eliminationCopy.textContent = TEAMS[guessingTeam].name + "已被淘汰，之后的回合会自动跳过该队。";
-        dismissElimination.textContent = "开始下一队";
+        message.textContent = TEAMS[guessingTeam].name + " hit black and is out. Next is " + TEAMS[currentTeam].name + ". After this notice, start " + formatTime(timerSettings.clue) + " of captain thinking.";
+        eliminationCopy.textContent = TEAMS[guessingTeam].name + " is eliminated. Later turns will skip this team automatically.";
+        dismissElimination.textContent = "Start next team";
         eliminationNotice.hidden = false;
       }
     } else if (card.role === guessingTeam) {
       if (targetCompleted) {
         if (config.teamCount === 2) {
-          finishGame(TEAMS[guessingTeam].name + "率先找齐全部图片。", guessingTeam);
+          finishGame(TEAMS[guessingTeam].name + " found all of their pictures first.", guessingTeam);
           return;
         }
         const completedCopy = completionMessage(guessingTeam);
         advanceTeam(completedCopy, true);
       } else {
-        message.textContent = "答对！" + TEAMS[guessingTeam].name + "可以继续选择。";
+        message.textContent = "Correct! " + TEAMS[guessingTeam].name + " can keep guessing.";
       }
     } else if (config.activeTeams.includes(card.role)) {
       if (targetCompleted && config.teamCount === 2) {
-        finishGame("这次选择帮助" + TEAMS[card.role].name + "找齐了全部图片。", card.role);
+        finishGame("That guess helped " + TEAMS[card.role].name + " find all of their pictures.", card.role);
         return;
       }
       const helpCopy = targetCompleted
-        ? "还帮助" + TEAMS[card.role].name + "完成了全部图片。"
-        : "已替对方翻面。";
-      advanceTeam("翻到了" + TEAMS[card.role].name + "的图片，" + helpCopy, true);
+        ? "and also helped " + TEAMS[card.role].name + " finish all of their pictures."
+        : "and revealed it for them.";
+      advanceTeam("Revealed a " + TEAMS[card.role].name + " picture, " + helpCopy, true);
     } else {
-      advanceTeam("翻到白色，本回合结束。", true);
+      advanceTeam("Revealed white. This turn is over.", true);
     }
 
     saveState();
@@ -1224,7 +1214,7 @@ function setupPlay() {
     renderBoard();
     renderStatus();
     syncMasterWindow();
-    message.textContent = "表面图片已刷新；" + config.cardCount + " 个位置下方的答案颜色完全不变。";
+    message.textContent = "Surface pictures refreshed. Hidden colors under all " + config.cardCount + " spaces are unchanged.";
   }
 
   function refreshLayout() {
@@ -1245,21 +1235,21 @@ function setupPlay() {
     renderBoard();
     renderStatus();
     syncMasterWindow();
-    message.textContent = "隐藏颜色已重新分布，图片保持不变；请把新的队长答案链接发给队长。";
+    message.textContent = "Hidden colors were redistributed. Pictures are unchanged. Send captains the new key link.";
   }
 
   async function copyMasterLink() {
     const url = masterUrl(seed, imageRevision, layoutRevision, config).href;
     try {
       await copyText(url);
-      copyMasterFeedback.textContent = "队长答案链接已复制";
-      copyMasterButton.textContent = "已复制";
+      copyMasterFeedback.textContent = "Captain key link copied";
+      copyMasterButton.textContent = "Copied";
       window.setTimeout(() => {
-        copyMasterButton.textContent = "复制队长答案链接";
+        copyMasterButton.textContent = "Copy captain key link";
         copyMasterFeedback.textContent = "";
       }, 1800);
     } catch {
-      copyMasterFeedback.textContent = "复制失败，请打开队长答案页后复制浏览器地址";
+      copyMasterFeedback.textContent = "Copy failed. Open the captain key page and copy the browser address";
     }
     return url;
   }
@@ -1275,7 +1265,7 @@ function setupPlay() {
     finalResults.hidden = true;
     stopCelebration();
     configureTimer("prep", timerSettings.prep, false);
-    message.textContent = "本局进度已重置。请开始 " + formatTime(timerSettings.prep) + " 的全体队长准备时间。";
+    message.textContent = "This game was reset. Start " + formatTime(timerSettings.prep) + " of captain prep.";
     saveState();
     renderBoard();
     renderStatus();
@@ -1294,7 +1284,7 @@ function setupPlay() {
     if (teamOrderValue(normalizedOrder) === teamOrderValue(config.turnOrder)) return false;
     if (normalizedOrder.length !== config.activeTeams.length
       || normalizedOrder.some((team, index) => !config.activeTeams.includes(team) || normalizedOrder.indexOf(team) !== index)) {
-      throw new Error("队伍顺序必须包含每个参赛队伍一次。");
+      throw new Error("Turn order must include each playing team once.");
     }
     const teamCounts = { ...config.teamCounts };
     if (config.teamCount === 2 && normalizedOrder[0] !== config.firstTeam) {
@@ -1324,7 +1314,7 @@ function setupPlay() {
     for (const phase of Object.keys(normalized)) {
       const minimum = phase === "prep" ? 15 : 5;
       if (!Number.isInteger(normalized[phase]) || normalized[phase] < minimum || normalized[phase] > 3600) {
-        throw new Error("开场时间至少 15 秒；其他阶段必须设置为 5 到 3600 秒。");
+        throw new Error("Opening prep must be at least 15 seconds. Other phases must be 5 to 3600 seconds.");
       }
     }
     return normalized;
@@ -1334,7 +1324,7 @@ function setupPlay() {
     timerSettings = normalizeTimerSettings(nextSettings);
     storageSet(timerSettingsKey, JSON.stringify(timerSettings));
     configureTimer(timerPhase, timerSettings[timerPhase], shouldResume && !gameIsFinished());
-    message.textContent = "设置已更新：字号" + FONT_SIZE_NAMES[fontSizePreset] + "，开场 " + formatTime(timerSettings.prep) + "，队长 " + formatTime(timerSettings.clue) + "，答题 " + formatTime(timerSettings.guess) + "。";
+    message.textContent = "Settings saved: " + FONT_SIZE_NAMES[fontSizePreset] + " font, prep " + formatTime(timerSettings.prep) + ", captain " + formatTime(timerSettings.clue) + ", guessing " + formatTime(timerSettings.guess) + ".";
   }
 
   function openTimerSettings() {
@@ -1365,8 +1355,8 @@ function setupPlay() {
     game = buildGame(seed, imageRevision, layoutRevision, config);
     board.style.setProperty("--grid-size", String(config.gridSize));
     board.dataset.gridSize = String(config.gridSize);
-    board.setAttribute("aria-label", config.gridSize + "乘" + config.gridSize + "图片题板");
-    teamSwitcher.setAttribute("aria-label", config.teamCount + "队状态与当前队伍");
+    board.setAttribute("aria-label", config.gridSize + " by " + config.gridSize + " picture board");
+    teamSwitcher.setAttribute("aria-label", config.teamCount + " team status and current team");
     if (currentTeam && !isActive(currentTeam)) currentTeam = null;
     if (!currentTeam && round > 0 && !gameIsFinished()) currentTeam = activeTeams()[0];
     setGameInUrl(seed, imageRevision, layoutRevision, config);
@@ -1376,7 +1366,7 @@ function setupPlay() {
       timerPhase = "guess";
       timerRemaining = 0;
       revealed = new Set(game.cards.map((card) => card.index));
-      message.textContent = "已恢复最终结果；所有答案均已显示。";
+      message.textContent = "Restored the final results. All answers are shown.";
       renderTimer();
       renderBoard();
       renderStatus();
@@ -1385,19 +1375,19 @@ function setupPlay() {
     }
     if (currentTeam) {
       configureTimer("clue", timerSettings.clue, false);
-      message.textContent = "已恢复本局进度。当前为" + TEAMS[currentTeam].name + "，请继续队长思考计时。";
+      message.textContent = "Restored this game. It is " + TEAMS[currentTeam].name + ". Continue the captain thinking timer.";
     } else {
       configureTimer("prep", timerSettings.prep, false);
       message.textContent = restored && gameIsFinished()
-        ? "已恢复最终结果。"
-        : "先开始 " + formatTime(timerSettings.prep) + " 的全体队长准备时间。";
+        ? "Restored the final results."
+        : "Start with " + formatTime(timerSettings.prep) + " of captain prep.";
     }
     renderBoard();
     renderStatus();
   }
 
   startAnsweringButton.addEventListener("click", () => startAnswering());
-  nextTeamButton.addEventListener("click", () => advanceTeam("主持人结束了当前回合。", true));
+  nextTeamButton.addEventListener("click", () => advanceTeam("The host ended the current turn.", true));
   document.querySelector("#refresh-images").addEventListener("click", refreshImages);
   document.querySelector("#refresh-layout").addEventListener("click", refreshLayout);
   copyMasterButton.addEventListener("click", copyMasterLink);
@@ -1405,7 +1395,7 @@ function setupPlay() {
   timerSkip.addEventListener("click", skipTimerPhase);
   document.querySelector("#timer-reset").addEventListener("click", () => {
     configureTimer(timerPhase, timerSettings[timerPhase], false);
-    message.textContent = timerPresets[timerPhase].label + "已重新计时。";
+    message.textContent = timerPresets[timerPhase].label + " timer was reset.";
   });
   timerSettingsButton.addEventListener("click", openTimerSettings);
   document.querySelector("#timer-settings-close").addEventListener("click", closeTimerSettings);
@@ -1432,7 +1422,7 @@ function setupPlay() {
     }, shouldResume && !orderChanged);
     if (orderChanged) {
       resetGame();
-      message.textContent = "队伍顺序已设为 " + config.turnOrder.map((team) => TEAMS[team].name).join(" → ") + "；本局已重置。";
+      message.textContent = "Team order is now " + config.turnOrder.map((team) => TEAMS[team].name).join(" → ") + ". This game was reset.";
     }
     timerSettingsModal.hidden = true;
     timerSettingsButton.focus();
@@ -1442,10 +1432,10 @@ function setupPlay() {
     else await document.exitFullscreen();
   });
   document.addEventListener("fullscreenchange", () => {
-    fullscreenButton.textContent = document.fullscreenElement ? "退出全屏" : "全屏";
+    fullscreenButton.textContent = document.fullscreenElement ? "Exit fullscreen" : "Fullscreen";
   });
   document.querySelector("#reset-board").addEventListener("click", () => {
-    if (!window.confirm("确定要清除这局的揭牌、出局和排名记录吗？")) return;
+    if (!window.confirm("Clear this game's reveals, eliminations, and ranking?")) return;
     resetGame();
   });
   dismissElimination.addEventListener("click", () => {
@@ -1466,8 +1456,8 @@ function setupPlay() {
   });
   registerWebTool({
     name: "reveal_codenames_picture",
-    title: "翻开图片",
-    description: "按题板编号翻开图片，并应用继续、换队、帮助对方或当前队出局的规则。",
+    title: "Reveal a picture",
+    description: "Reveal a picture by board number, applying continue, switch-team, help-opponent, or current-team-out rules.",
     inputSchema: {
       type: "object",
       properties: { number: { type: "integer", minimum: 1, maximum: config.cardCount } },
@@ -1477,7 +1467,7 @@ function setupPlay() {
     annotations: { readOnlyHint: false, untrustedContentHint: false },
     execute(input) {
       if (!Number.isInteger(input?.number) || input.number < 1 || input.number > config.cardCount) {
-        throw new Error("图片编号必须是 1 到 " + config.cardCount + " 的整数。");
+        throw new Error("Picture number must be an integer from 1 to " + config.cardCount + ".");
       }
       const card = game.cards[input.number - 1];
       const previousTeam = currentTeam;
@@ -1496,8 +1486,8 @@ function setupPlay() {
 
   registerWebTool({
     name: "set_codenames_current_team",
-    title: "设置当前队伍",
-    description: "由主持人把当前回合切换到仍在比赛中的指定队伍，并启动已设置的队长思考计时。",
+    title: "Set current team",
+    description: "Let the host switch the turn to a team still in the game and start the configured captain thinking timer.",
     inputSchema: {
       type: "object",
       properties: { team: { type: "string", enum: config.activeTeams } },
@@ -1506,8 +1496,8 @@ function setupPlay() {
     },
     annotations: { readOnlyHint: false, untrustedContentHint: false },
     execute(input) {
-      if (!config.activeTeams.includes(input?.team)) throw new Error("该队不在本局配置中。");
-      if (!isActive(input.team)) throw new Error("该队已经完成或出局，不能再获得回合。");
+      if (!config.activeTeams.includes(input?.team)) throw new Error("That team is not in this game.");
+      if (!isActive(input.team)) throw new Error("That team has already finished or been eliminated and cannot take a turn.");
       selectTeam(input.team);
       return { currentTeam, round, timerPhase, timerRemaining };
     }
@@ -1515,8 +1505,8 @@ function setupPlay() {
 
   registerWebTool({
     name: "start_codenames_answering",
-    title: "开始答题",
-    description: "结束当前队长思考阶段，把剩余秒数与已设置的答题时间相加，并立即开始计时。",
+    title: "Start guessing",
+    description: "End the current captain thinking phase, add leftover seconds to the configured guessing time, and start the timer immediately.",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
     annotations: { readOnlyHint: false, untrustedContentHint: false },
     execute(input) {
@@ -1528,22 +1518,22 @@ function setupPlay() {
 
   registerWebTool({
     name: "advance_codenames_turn",
-    title: "切换下一队伍",
-    description: "结束当前回合，跳过已完成或出局的队伍，并为下一队启动已设置的队长思考计时。",
+    title: "Next team",
+    description: "End the current turn, skip finished or eliminated teams, and start the configured captain thinking timer for the next team.",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
     annotations: { readOnlyHint: false, untrustedContentHint: false },
     execute(input) {
       assertEmptyInput(input);
-      if (!currentTeam) throw new Error("准备阶段尚未结束，当前没有队伍回合。");
-      advanceTeam("主持人结束了当前回合。", true);
+      if (!currentTeam) throw new Error("Prep is not over yet, so no team is taking a turn.");
+      advanceTeam("The host ended the current turn.", true);
       return { currentTeam, round, timerPhase, timerRemaining };
     }
   });
 
   registerWebTool({
     name: "refresh_codenames_pictures",
-    title: "刷新表面图片",
-    description: "更换全部表面图片，同时保持每个位置下方的答案颜色不变。",
+    title: "Refresh surface pictures",
+    description: "Replace all surface pictures while keeping the hidden color under each space the same.",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
     annotations: { readOnlyHint: false, untrustedContentHint: false },
     execute(input) {
@@ -1556,8 +1546,8 @@ function setupPlay() {
 
   registerWebTool({
     name: "refresh_codenames_layout",
-    title: "刷新颜色分布",
-    description: "保持当前图片不变，生成新的隐藏颜色分布并重置本局进度。",
+    title: "Refresh color layout",
+    description: "Keep the current pictures, generate a new hidden color layout, and reset this game.",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
     annotations: { readOnlyHint: false, untrustedContentHint: false },
     execute(input) {
@@ -1576,8 +1566,8 @@ function setupPlay() {
 
   registerWebTool({
     name: "skip_codenames_timer",
-    title: "跳过当前倒计时",
-    description: "立即结束当前倒计时：准备阶段进入本局先手队，队长思考进入答题，答题阶段进入下一队。",
+    title: "Skip current countdown",
+    description: "End the current countdown immediately: prep goes to the first team, captain thinking goes to guessing, and guessing goes to the next team.",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
     annotations: { readOnlyHint: false, untrustedContentHint: false },
     execute(input) {
@@ -1590,8 +1580,8 @@ function setupPlay() {
 
   registerWebTool({
     name: "set_codenames_timer_settings",
-    title: "设置游戏",
-    description: "设置三个计时阶段、界面字号和完整队伍顺序。更改队伍顺序会重置本局。",
+    title: "Set game",
+    description: "Set the three timer phases, interface font size, and full team order. Changing team order resets this game.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1643,7 +1633,7 @@ function setupPlay() {
     let nextGame;
     try {
       const entered = parseBoardSeed(seedValue.value);
-      if (!entered) throw new Error("请先输入局号或粘贴完整种子。");
+      if (!entered) throw new Error("Enter a game code or paste a full seed first.");
       nextGame = buildGame(entered.seed, entered.imageRevision, entered.layoutRevision, entered.config || config);
     } catch (error) {
       seedValue.setCustomValidity(error.message);
@@ -1672,14 +1662,14 @@ function setupPlay() {
     const currentSeed = createBoardSeed(game);
     try {
       await copyText(currentSeed);
-      seedFeedback.textContent = "当前题板种子已复制，可在种子窗口粘贴并按回车使用。";
+      seedFeedback.textContent = "Current board seed copied. Paste it in the seed dialog and press Enter to use it.";
     } catch {
       seedValue.value = currentSeed;
       seedValue.setCustomValidity("");
       seedValue.removeAttribute("aria-invalid");
       seedValue.focus();
       seedValue.select();
-      seedFeedback.textContent = "请手动复制上方已选中的完整种子。";
+      seedFeedback.textContent = "Copy the selected full seed above by hand.";
     }
   });
 

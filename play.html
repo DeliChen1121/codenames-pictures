@@ -1,74 +1,74 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#07111f" />
-    <meta name="description" content="2 至 4 队现场版代号图像主持题板" />
-    <title>玩家题板 · 代号：图像</title>
+    <meta name="description" content="Host board for live Codenames Pictures with 2 to 4 teams" />
+    <title>Player board · Codenames: Pictures</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body data-view="play">
     <main class="shell play-shell">
       <header class="topbar play-topbar">
-        <a class="brand" href="./index.html" aria-label="返回开始页面">
+        <a class="brand" href="./index.html" aria-label="Back to the start page">
           <span class="brand-mark" aria-hidden="true">⌁</span>
-          <span><strong>代号：图像</strong><small>主持人主控</small></span>
+          <span><strong>Codenames: Pictures</strong><small>Host controls</small></span>
         </a>
 
-        <div class="board-toolbar" aria-label="题板工具">
+        <div class="board-toolbar" aria-label="Board tools">
           <span class="game-mode-pill" id="game-mode-label">—</span>
-          <button class="game-code-pill" id="show-seed" type="button" title="复制种子或输入种子切换题板">种子 <strong id="game-code-label">—</strong><span aria-hidden="true">⧉</span></button>
-          <button class="button button-quiet" id="refresh-images" type="button">换图片</button>
-          <button class="button button-quiet" id="refresh-layout" type="button">换分布</button>
-          <a class="button button-secondary" id="open-master-window" href="./master.html" target="_blank" rel="noopener" hidden>打开队长答案窗口</a>
-          <button class="button button-secondary" id="copy-master-link" type="button">复制队长答案链接</button>
-          <button class="button button-quiet fullscreen-button" id="fullscreen" type="button">全屏</button>
+          <button class="game-code-pill" id="show-seed" type="button" title="Copy the seed, or enter a seed to switch boards">Seed <strong id="game-code-label">—</strong><span aria-hidden="true">⧉</span></button>
+          <button class="button button-quiet" id="refresh-images" type="button">New pictures</button>
+          <button class="button button-quiet" id="refresh-layout" type="button">New layout</button>
+          <a class="button button-secondary" id="open-master-window" href="./master.html" target="_blank" rel="noopener" hidden>Open captain key</a>
+          <button class="button button-secondary" id="copy-master-link" type="button">Copy captain key link</button>
+          <button class="button button-quiet fullscreen-button" id="fullscreen" type="button">Fullscreen</button>
         </div>
       </header>
 
       <p class="toolbar-feedback" id="copy-master-feedback" role="status" aria-live="polite"></p>
 
       <div class="game-layout">
-        <section class="game-board" id="game-board" aria-label="图片题板"></section>
+        <section class="game-board" id="game-board" aria-label="Picture board"></section>
 
-        <aside class="host-sidebar" id="turn-console" data-team="prep" aria-label="主持人控制台">
+        <aside class="host-sidebar" id="turn-console" data-team="prep" aria-label="Host console">
           <div class="turn-heading">
-            <span class="section-label">现在是谁的回合？</span>
+            <span class="section-label">Whose turn is it?</span>
             <div class="turn-title-row">
-              <h1 id="current-team-name">全体队长准备</h1>
+              <h1 id="current-team-name">Captains prepare</h1>
               <div class="turn-meta">
-                <span class="round-label" id="round-label">准备阶段</span>
-                <button class="settings-button" id="timer-settings" type="button" aria-label="游戏设置" title="游戏设置：时间与字体">⚙</button>
+                <span class="round-label" id="round-label">Prep</span>
+                <button class="settings-button" id="timer-settings" type="button" aria-label="Game settings" title="Game settings: timers and font size">⚙</button>
               </div>
             </div>
-            <p id="phase-instruction">所有队长一起查看答案；队友只看左侧图片。</p>
+            <p id="phase-instruction">All captains look at the key together. Teammates only see the pictures on the left.</p>
           </div>
 
-          <div class="timer" aria-label="回合计时器">
+          <div class="timer" aria-label="Turn timer">
             <div class="timer-copy">
-              <span id="timer-phase">全体队长思考</span>
+              <span id="timer-phase">Captain prep</span>
               <strong id="timer-display">02:00</strong>
             </div>
             <div class="timer-controls">
-              <button class="timer-toggle" id="timer-toggle" type="button">开始准备</button>
-              <button class="timer-skip" id="timer-skip" type="button">跳过</button>
-              <button class="icon-button" id="timer-reset" type="button" aria-label="重新计时" title="重新计时">↻</button>
+              <button class="timer-toggle" id="timer-toggle" type="button">Start prep</button>
+              <button class="timer-skip" id="timer-skip" type="button">Skip</button>
+              <button class="icon-button" id="timer-reset" type="button" aria-label="Reset timer" title="Reset timer">↻</button>
             </div>
           </div>
 
-          <button class="button button-answer" id="start-answering" type="button" disabled>开始答题 <span>+ 1:00</span></button>
+          <button class="button button-answer" id="start-answering" type="button" disabled>Start guessing <span>+ 1:00</span></button>
 
-          <div class="team-switcher" id="team-switcher" role="group" aria-label="队伍状态与当前队伍"></div>
+          <div class="team-switcher" id="team-switcher" role="group" aria-label="Team status and current team"></div>
 
           <div class="turn-actions">
-            <button class="button button-primary" id="next-team" type="button" disabled>下一个队伍 <span aria-hidden="true">→</span></button>
-            <button class="button button-secondary" id="view-results" type="button" hidden>查看最终排名 <span aria-hidden="true">🎉</span></button>
+            <button class="button button-primary" id="next-team" type="button" disabled>Next team <span aria-hidden="true">→</span></button>
+            <button class="button button-secondary" id="view-results" type="button" hidden>View final ranking <span aria-hidden="true">🎉</span></button>
           </div>
 
-          <p class="game-message" id="game-message" role="status" aria-live="polite">先开始 2 分钟的全体队长准备时间。</p>
+          <p class="game-message" id="game-message" role="status" aria-live="polite">Start with 2 minutes of captain prep.</p>
 
-          <button class="text-button reset-board" id="reset-board" type="button">重置本局进度</button>
+          <button class="text-button reset-board" id="reset-board" type="button">Reset this game</button>
         </aside>
       </div>
     </main>
@@ -77,9 +77,9 @@
       <div class="game-over-card" role="dialog" aria-modal="true" aria-labelledby="elimination-title">
         <span class="assassin-mark" aria-hidden="true">×</span>
         <p class="eyebrow">ASSASSIN</p>
-        <h2 id="elimination-title">触发黑色，队伍出局</h2>
+        <h2 id="elimination-title">Black card — team out</h2>
         <p id="elimination-copy"></p>
-        <button class="button button-secondary" id="dismiss-elimination" type="button">开始下一队</button>
+        <button class="button button-secondary" id="dismiss-elimination" type="button">Start next team</button>
       </div>
     </div>
 
@@ -88,52 +88,52 @@
         <div class="settings-heading">
           <div>
             <p class="eyebrow">GAME SETTINGS</p>
-            <h2 id="timer-settings-title">游戏设置</h2>
+            <h2 id="timer-settings-title">Game settings</h2>
           </div>
-          <button class="settings-close" id="timer-settings-close" type="button" aria-label="关闭游戏设置">×</button>
+          <button class="settings-close" id="timer-settings-close" type="button" aria-label="Close game settings">×</button>
         </div>
 
-        <p class="settings-help">可调整界面字号与三个阶段的时间；保存后会按新时间重新开始当前阶段。</p>
+        <p class="settings-help">Adjust the interface font size and the three timer phases. Saving restarts the current phase with the new time.</p>
 
         <label class="time-setting" for="settings-prep-minutes">
-          <span><strong>开场准备</strong><small>所有队长共同查看答案</small></span>
-          <span class="time-input"><input id="settings-prep-minutes" type="number" min="0.25" max="60" step="0.25" required /><em>分钟</em></span>
+          <span><strong>Opening prep</strong><small>All captains look at the key together</small></span>
+          <span class="time-input"><input id="settings-prep-minutes" type="number" min="0.25" max="60" step="0.25" required /><em>min</em></span>
         </label>
 
         <label class="time-setting" for="settings-clue-seconds">
-          <span><strong>队长思考</strong><small>每队开始回合后的提示时间</small></span>
-          <span class="time-input"><input id="settings-clue-seconds" type="number" min="5" max="600" step="5" required /><em>秒</em></span>
+          <span><strong>Captain thinking</strong><small>Time to give a clue at the start of a turn</small></span>
+          <span class="time-input"><input id="settings-clue-seconds" type="number" min="5" max="600" step="5" required /><em>sec</em></span>
         </label>
 
         <label class="time-setting" for="settings-guess-seconds">
-          <span><strong>队员答题</strong><small>会与剩余队长时间相加</small></span>
-          <span class="time-input"><input id="settings-guess-seconds" type="number" min="5" max="600" step="5" required /><em>秒</em></span>
+          <span><strong>Team guessing</strong><small>Added to any leftover captain time</small></span>
+          <span class="time-input"><input id="settings-guess-seconds" type="number" min="5" max="600" step="5" required /><em>sec</em></span>
         </label>
 
         <label class="time-setting" for="settings-font-size">
-          <span><strong>界面字体</strong><small>同时放大按钮与主持人控制区</small></span>
+          <span><strong>Interface font</strong><small>Also scales buttons and the host panel</small></span>
           <span class="time-input">
             <select id="settings-font-size">
-              <option value="small">小</option>
-              <option value="standard">标准</option>
-              <option value="large">大（默认）</option>
-              <option value="huge">超大</option>
+              <option value="small">Small</option>
+              <option value="standard">Standard</option>
+              <option value="large">Large (default)</option>
+              <option value="huge">Huge</option>
             </select>
           </span>
         </label>
 
         <label class="time-setting" for="settings-team-order">
-          <span><strong>队伍顺序</strong><small>选择完整的回合先后顺序</small></span>
+          <span><strong>Team order</strong><small>Choose the full turn order</small></span>
           <span class="time-input">
             <select id="settings-team-order"></select>
           </span>
         </label>
 
-        <p class="settings-warning">更改队伍顺序会重置本局进度，并重新进入全体队长准备阶段。</p>
+        <p class="settings-warning">Changing team order resets this game and returns to captain prep.</p>
 
         <div class="settings-actions">
-          <button class="text-button" id="timer-settings-defaults" type="button">恢复默认</button>
-          <button class="button button-primary" type="submit">保存设置</button>
+          <button class="text-button" id="timer-settings-defaults" type="button">Restore defaults</button>
+          <button class="button button-primary" type="submit">Save settings</button>
         </div>
       </form>
     </div>
@@ -143,27 +143,27 @@
       <section class="final-results-card" role="dialog" aria-modal="true" aria-labelledby="final-results-title">
         <span class="celebration-mark" aria-hidden="true">🎉</span>
         <p class="eyebrow">GAME COMPLETE</p>
-        <h2 id="final-results-title">本局排名</h2>
-        <p class="final-results-copy" id="final-results-copy">所有答案已经显示在题板上。</p>
+        <h2 id="final-results-title">Final ranking</h2>
+        <p class="final-results-copy" id="final-results-copy">All answers are now shown on the board.</p>
         <div class="ranking-list" id="ranking-list"></div>
-        <button class="button button-primary" id="dismiss-results" type="button">查看全部答案</button>
+        <button class="button button-primary" id="dismiss-results" type="button">View all answers</button>
       </section>
     </div>
 
     <dialog class="seed-dialog" id="seed-dialog" aria-labelledby="seed-title">
       <div class="settings-heading">
-        <h2 id="seed-title">当前题板种子</h2>
-        <button class="settings-close" id="close-seed" type="button" aria-label="关闭种子窗口">×</button>
+        <h2 id="seed-title">Current board seed</h2>
+        <button class="settings-close" id="close-seed" type="button" aria-label="Close seed dialog">×</button>
       </div>
-      <p id="seed-dialog-help">可复制当前种子，也可直接粘贴其他种子，按回车切换题板和队长答案。短局号沿用当前规则；完整种子会带入对应规则。</p>
-      <label for="board-seed-value">局号 / 完整种子</label>
+      <p id="seed-dialog-help">Copy the current seed, or paste another seed and press Enter to switch the board and captain key. A short game code keeps the current rules; a full seed restores its matching rules.</p>
+      <label for="board-seed-value">Game code / full seed</label>
       <textarea id="board-seed-value" rows="3" maxlength="200" spellcheck="false" aria-describedby="seed-dialog-help seed-copy-feedback"></textarea>
       <p id="seed-copy-feedback" role="status" aria-live="polite"></p>
       <div class="settings-actions">
-        <button class="button button-secondary" id="copy-seed" type="button">复制当前种子</button>
-        <button class="button button-primary" id="apply-seed" type="button">切换题板 ↵</button>
+        <button class="button button-secondary" id="copy-seed" type="button">Copy current seed</button>
+        <button class="button button-primary" id="apply-seed" type="button">Switch board ↵</button>
       </div>
-      <p class="seed-note">切换后从全体队长准备阶段重新开始，翻牌与排名清零。换图片或换分布后，请重新复制种子。</p>
+      <p class="seed-note">Switching starts over from captain prep. Reveals and rankings are cleared. After New pictures or New layout, copy the seed again.</p>
     </dialog>
 
     <script type="module" src="./app.js"></script>

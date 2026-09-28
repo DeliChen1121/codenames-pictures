@@ -1,43 +1,50 @@
-Codenames: Pictures 离线版
-============================
+Codenames: Pictures offline
+===========================
 
-使用方法
---------
-1. 请先完整解压整个 ZIP 压缩包，不要直接在压缩包预览中运行。
-2. 双击压缩包根目录中的“双击这里开始游戏.html”。
-3. 推荐使用最新版 Chrome、Edge 或 Safari 打开。
-4. 所有图片与程序都在“其他游戏文件（无需打开）”文件夹内，游玩时不需要网络。
-5. 不要移动启动文件，也不要改名或删除“其他游戏文件（无需打开）”文件夹。
-6. 选择组数和模式后点击“开始游戏”，再选择队伍先后顺序，点击“开始”显示卡片。
-   按住队伍卡片上下拖动即可排序，也可以点击卡片右侧的上下箭头。
-
-队长答案
---------
-进入玩家题板后，点击“打开队长答案窗口”。该窗口可拖到第二块显示器，
-也可以仅在队长查看时临时打开。请勿让普通队员看到该窗口。
-
-局号 / 种子
+How to play
 -----------
-开局时自动生成局号。游戏内点击顶部“种子”，可输入 1–10 位英文字母或数字，例如 CHURCH2026。
-相同局号搭配相同队伍、模式与规则，会得到完全相同的图片和颜色分布。
-开局后点击顶部“种子”，再点击“复制当前种子”，即可保存当前题板的完整种子。
-直接在这个窗口粘贴其他种子，按回车或点击“切换题板”即可更换图片与分布。
-短局号沿用当前规则；完整种子自动带入对应规则。切换后从准备阶段重新开始。
-通过当前主持页面打开的队长答案窗口也会同步更新；其他设备请重新打开新答案链接。
-“换图片”或“换分布”后，请重新复制完整种子，才能重现刷新后的题板。
-切换种子会重新开始；种子不携带翻牌或计时进度。页面刷新仍可恢复旧进度。
+1. Fully unzip the ZIP first. Do not run the game from inside a zip preview.
+2. Double-click LAUNCH_GAME.html in the extracted folder.
+3. Use the latest Chrome, Edge, or Safari.
+4. All pictures, program files, and notices are in game_assets/. No network is needed to play.
+5. Keep LAUNCH_GAME.html next to game_assets/. Do not rename, move, or delete game_assets/.
+6. Choose team count and pace, click Start game, pick turn order, then click Start to show the cards.
+   Drag team cards up or down to reorder them, or use the up/down arrows on the right.
 
-数据说明
---------
-游戏进度与时间设置会尽量保存在当前浏览器中。清除浏览器数据、移动文件夹，
-或者更换浏览器后，旧进度可能无法恢复。
+Captain key
+-----------
+On the player board, click “Open captain key”. You can drag that window to a second display,
+or open it only while captains look. Do not let ordinary teammates see this window.
 
-使用范围
---------
-本包用于私人、非商业的内部活动测试。请勿公开上传、出售或再次分发其中的图片素材。
+Game code / seed
+----------------
+A game code is generated when the game starts. Click Seed at the top to enter 1–10 letters
+or digits, for example CHURCH2026.
+The same game code with the same teams, pace, and rules produces the same pictures and colors.
+After the game starts, click Seed, then “Copy current seed”, to save the full seed for this board.
+Paste another seed in this window and press Enter or click “Switch board” to change pictures and layout.
+A short game code keeps the current rules; a full seed brings its matching rules. Switching starts over from prep.
+A captain key window opened from this host page also updates; other devices should open a new key link.
+After “New pictures” or “New layout”, copy the full seed again if you want to recreate the refreshed board.
+Switching seeds starts over; seeds do not include reveals or timer progress. Refreshing the page can still restore old progress.
 
-原版游戏官网：
+Saved data
+----------
+Game progress and timer settings are stored in the current browser when possible. Clearing
+browser data, moving the folder, or switching browsers may make old progress unrecoverable.
+
+Credits and copyright
+--------------------
+This is an unofficial fan-made adaptation, not an official Czech Games Edition product.
+The original game is designed by Vlaada Chvatil and published by Czech Games Edition (CGE).
+The picture assets were obtained from the reference repository below. Their inclusion
+does not imply permission to redistribute them. No explicit upstream license or separate
+permission to redistribute the original artwork has been verified for this package.
+Attribution, private access, and non-commercial use do not by themselves grant permission.
+Read game_assets/COPYRIGHT.txt before sharing, publishing, or reusing the package.
+
+Official site:
 https://www.czechgames.com/games/codenames-pictures
 
-参考项目：
+Reference project:
 https://github.com/samdemaeyer/codenames-pictures

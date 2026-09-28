@@ -1,38 +1,38 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#07111f" />
-    <meta name="description" content="2 至 4 队现场版代号图像队长答案" />
-    <title>队长答案 · 代号：图像</title>
+    <meta name="description" content="Captain key for live Codenames Pictures with 2 to 4 teams" />
+    <title>Captain key · Codenames: Pictures</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body data-view="master">
     <main class="shell answer-shell">
       <header class="topbar answer-topbar">
-        <a class="brand" href="./index.html" aria-label="返回开始页面">
+        <a class="brand" href="./index.html" aria-label="Back to the start page">
           <span class="brand-mark" aria-hidden="true">⌁</span>
-          <span><strong>队长答案</strong><small>仅限队长查看</small></span>
+          <span><strong>Captain key</strong><small>Captains only</small></span>
         </a>
         <div class="answer-meta">
-          <span class="game-code-pill">局号 <strong id="master-code-label">—</strong></span>
-          <a class="button button-quiet" id="open-play" href="./play.html">返回玩家题板</a>
+          <span class="game-code-pill">Code <strong id="master-code-label">—</strong></span>
+          <a class="button button-quiet" id="open-play" href="./play.html">Back to player board</a>
         </div>
       </header>
 
       <section class="answer-heading">
         <div>
           <p class="eyebrow">MASTER CARD</p>
-          <h1>颜色答案</h1>
+          <h1>Color key</h1>
           <p class="answer-game-summary" id="master-game-summary"></p>
         </div>
-        <p>图片与玩家题板一一对应。请不要让队员看到这个页面。</p>
+        <p>Pictures match the player board one-to-one. Do not let guessers see this page.</p>
       </section>
 
-      <section class="answer-board" id="master-board" aria-label="队长答案卡"></section>
+      <section class="answer-board" id="master-board" aria-label="Captain key cards"></section>
 
-      <div class="legend answer-legend" id="master-legend" aria-label="颜色分配"></div>
+      <div class="legend answer-legend" id="master-legend" aria-label="Color assignment"></div>
     </main>
     <script type="module" src="./app.js"></script>
   </body>
